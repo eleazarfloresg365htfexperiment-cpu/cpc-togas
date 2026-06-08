@@ -2,7 +2,7 @@
 
 @section('title', 'Registrar producto')
 @section('page_title', '➕ Registrar producto')
-@section('page_subtitle', 'Agrega un nuevo producto al inventario de togas, birretes o collarines')
+@section('page_subtitle', 'Agrega un nuevo producto al inventario de togas, birretes, collarines o borlas')
 
 @section('content')
 
@@ -79,21 +79,21 @@
                     <div class="col-md-4">
                         <label class="form-label fw-semibold">Tipo de producto</label>
                         <select name="tipo_producto" id="tipo_producto" class="form-select" required>
-                            <option value="">Seleccione un tipo</option>
+                            <option value="">Selecciona un tipo</option>
 
-                            <option value="TOGA" {{ old('tipo_producto') == 'TOGA' ? 'selected' : '' }}>
+                            <option value="TOGA" {{ old('tipo_producto') === 'TOGA' ? 'selected' : '' }}>
                                 TOGA
                             </option>
 
-                            <option value="BIRRETE" {{ old('tipo_producto') == 'BIRRETE' ? 'selected' : '' }}>
+                            <option value="BIRRETE" {{ old('tipo_producto') === 'BIRRETE' ? 'selected' : '' }}>
                                 BIRRETE
                             </option>
 
-                            <option value="COLLARIN" {{ old('tipo_producto') == 'COLLARIN' ? 'selected' : '' }}>
+                            <option value="COLLARIN" {{ old('tipo_producto') === 'COLLARIN' ? 'selected' : '' }}>
                                 COLLARÍN
                             </option>
 
-                            <option value="BORLA" {{ old('tipo_producto') == 'BORLA' ? 'selected' : '' }}>
+                            <option value="BORLA" {{ old('tipo_producto') === 'BORLA' ? 'selected' : '' }}>
                                 BORLA
                             </option>
                         </select>
@@ -152,7 +152,7 @@
                     </div>
                 </div>
 
-                <div id="mensaje-tipo" class="alert alert-light border rounded-4 mb-0">
+                <div id="mensaje-detalles" class="alert alert-light border rounded-4">
                     Selecciona un tipo de producto para mostrar sus detalles específicos.
                 </div>
 
@@ -198,6 +198,25 @@
                     <div class="row g-4">
 
                         <div class="col-md-4">
+                            <label class="form-label fw-semibold">Tipo de birrete</label>
+                            <select name="tipo_birrete" class="form-select">
+                                <option value="">Selecciona tipo...</option>
+
+                                <option value="ESTANDAR" {{ old('tipo_birrete') === 'ESTANDAR' ? 'selected' : '' }}>
+                                    Estándar
+                                </option>
+
+                                <option value="NORMAL" {{ old('tipo_birrete') === 'NORMAL' ? 'selected' : '' }}>
+                                    Normal
+                                </option>
+
+                                <option value="UNIVERSITARIO" {{ old('tipo_birrete') === 'UNIVERSITARIO' ? 'selected' : '' }}>
+                                    Universitario
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
                             <label class="form-label fw-semibold">Color de birrete</label>
                             <input 
                                 type="text" 
@@ -208,6 +227,28 @@
                             >
                         </div>
 
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Carrera / área</label>
+                            <select name="carrera_birrete" class="form-select">
+                                <option value="">Sin carrera específica</option>
+
+                                <option value="ADMINISTRACION" {{ old('carrera_birrete') === 'ADMINISTRACION' ? 'selected' : '' }}>
+                                    Administración
+                                </option>
+
+                                <option value="AGRONOMIA" {{ old('carrera_birrete') === 'AGRONOMIA' ? 'selected' : '' }}>
+                                    Agronomía
+                                </option>
+
+                                <option value="DERECHO" {{ old('carrera_birrete') === 'DERECHO' ? 'selected' : '' }}>
+                                    Derecho
+                                </option>
+
+                                <option value="PEDAGOGIA" {{ old('carrera_birrete') === 'PEDAGOGIA' ? 'selected' : '' }}>
+                                    Pedagogía
+                                </option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
@@ -229,40 +270,44 @@
                 </div>
 
                 <div id="campos-borla" class="tipo-extra d-none">
-                    <div class="row g-4">
+                    <div class="alert alert-light border rounded-4 mt-4">
+                        <div class="fw-bold mb-3">Detalles de borla</div>
 
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold">Color de borla</label>
-                            <input
-                                type="text"
-                                name="borla_color"
-                                class="form-control"
-                                value="{{ old('borla_color') }}"
-                                placeholder="Ej. Dorada, roja, azul..."
-                            >
+                        <div class="row g-3">
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Color de borla</label>
+                                <input
+                                    type="text"
+                                    name="borla_color"
+                                    class="form-control"
+                                    value="{{ old('borla_color') }}"
+                                    placeholder="Ej. Roja, dorada, azul..."
+                                >
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Carrera / área</label>
+                                <input
+                                    type="text"
+                                    name="borla_carrera"
+                                    class="form-control"
+                                    value="{{ old('borla_carrera') }}"
+                                    placeholder="Ej. Derecho, Administración, General..."
+                                >
+                            </div>
+
+                            <div class="col-md-12">
+                                <label class="form-label fw-semibold">Observaciones de borla</label>
+                                <textarea
+                                    name="borla_observaciones"
+                                    class="form-control"
+                                    rows="2"
+                                    placeholder="Detalles adicionales de la borla..."
+                                >{{ old('borla_observaciones') }}</textarea>
+                            </div>
+
                         </div>
-
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold">Carrera / área</label>
-                            <input
-                                type="text"
-                                name="borla_carrera"
-                                class="form-control"
-                                value="{{ old('borla_carrera') }}"
-                                placeholder="Ej. Derecho, Administración, General..."
-                            >
-                        </div>
-
-                        <div class="col-md-12">
-                            <label class="form-label fw-semibold">Observaciones de borla</label>
-                            <textarea
-                                name="borla_observaciones"
-                                class="form-control"
-                                rows="2"
-                                placeholder="Detalles adicionales de la borla..."
-                            >{{ old('borla_observaciones') }}</textarea>
-                        </div>
-
                     </div>
                 </div>
 
@@ -284,32 +329,32 @@
                 </div>
 
                 <label class="form-label fw-semibold">Unidades iniciales</label>
-                <input 
-                    type="number" 
-                    name="stock_total" 
+                <input
+                    type="number"
+                    name="stock_total"
                     id="stock_total"
-                    class="form-control form-control-lg" 
+                    class="form-control"
                     value="{{ old('stock_total', 0) }}"
                     min="0"
                     required
                 >
 
                 <div class="alert alert-light border rounded-4 mt-3 mb-0">
-                    <div class="small text-muted mb-1">Al guardar:</div>
+                    <div class="small">
+                        <div class="d-flex justify-content-between">
+                            <span>Stock total</span>
+                            <strong id="preview_stock_total">0</strong>
+                        </div>
 
-                    <div class="d-flex justify-content-between">
-                        <span>Stock total</span>
-                        <strong id="preview_stock_total">{{ old('stock_total', 0) }}</strong>
-                    </div>
+                        <div class="d-flex justify-content-between">
+                            <span>Stock disponible</span>
+                            <strong id="preview_stock_disponible">0</strong>
+                        </div>
 
-                    <div class="d-flex justify-content-between">
-                        <span>Stock disponible</span>
-                        <strong id="preview_stock_disponible">{{ old('stock_total', 0) }}</strong>
-                    </div>
-
-                    <div class="d-flex justify-content-between">
-                        <span>Stock alquilado</span>
-                        <strong>0</strong>
+                        <div class="d-flex justify-content-between">
+                            <span>Stock alquilado</span>
+                            <strong id="preview_stock_alquilado">0</strong>
+                        </div>
                     </div>
                 </div>
 
@@ -342,68 +387,88 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        const tipoSelect = document.getElementById('tipo_producto');
+        const tipoProducto = document.getElementById('tipo_producto');
 
-        const mensajeTipo = document.getElementById('mensaje-tipo');
         const camposToga = document.getElementById('campos-toga');
         const camposBirrete = document.getElementById('campos-birrete');
         const camposCollarin = document.getElementById('campos-collarin');
         const camposBorla = document.getElementById('campos-borla');
 
+        const mensajeDetalles = document.getElementById('mensaje-detalles');
+
         const stockInput = document.getElementById('stock_total');
+
         const previewStockTotal = document.getElementById('preview_stock_total');
         const previewStockDisponible = document.getElementById('preview_stock_disponible');
+        const previewStockAlquilado = document.getElementById('preview_stock_alquilado');
 
         function ocultarCampos() {
-            camposToga.classList.add('d-none');
-            camposBirrete.classList.add('d-none');
-            camposCollarin.classList.add('d-none');
-            camposBorla.classList.add('d-none');
-            
+            if (camposToga) camposToga.classList.add('d-none');
+            if (camposBirrete) camposBirrete.classList.add('d-none');
+            if (camposCollarin) camposCollarin.classList.add('d-none');
+            if (camposBorla) camposBorla.classList.add('d-none');
         }
 
-        function mostrarCampos() {
-            const tipo = tipoSelect.value;
+        function mostrarCamposSegunTipo() {
+            if (!tipoProducto) return;
+
+            const tipo = tipoProducto.value;
 
             ocultarCampos();
 
-            if (!tipo) {
-                mensajeTipo.classList.remove('d-none');
-                return;
+            if (tipo && mensajeDetalles) {
+                mensajeDetalles.classList.add('d-none');
             }
 
-            mensajeTipo.classList.add('d-none');
-
-            if (tipo === 'TOGA') {
+            if (tipo === 'TOGA' && camposToga) {
                 camposToga.classList.remove('d-none');
             }
 
-            if (tipo === 'BIRRETE') {
+            if (tipo === 'BIRRETE' && camposBirrete) {
                 camposBirrete.classList.remove('d-none');
             }
 
-            if (tipo === 'COLLARIN') {
+            if (tipo === 'COLLARIN' && camposCollarin) {
                 camposCollarin.classList.remove('d-none');
             }
 
-            if (tipo === 'BORLA') {
+            if (tipo === 'BORLA' && camposBorla) {
                 camposBorla.classList.remove('d-none');
             }
-            
+        }
+
+        if (tipoProducto) {
+            tipoProducto.addEventListener('change', mostrarCamposSegunTipo);
+            mostrarCamposSegunTipo();
         }
 
         function actualizarPreviewStock() {
-            const valor = stockInput.value || 0;
+            if (!stockInput) return;
 
-            previewStockTotal.textContent = valor;
-            previewStockDisponible.textContent = valor;
+            let stock = parseInt(stockInput.value, 10);
+
+            if (isNaN(stock) || stock < 0) {
+                stock = 0;
+            }
+
+            if (previewStockTotal) {
+                previewStockTotal.textContent = stock;
+            }
+
+            if (previewStockDisponible) {
+                previewStockDisponible.textContent = stock;
+            }
+
+            if (previewStockAlquilado) {
+                previewStockAlquilado.textContent = 0;
+            }
         }
 
-        tipoSelect.addEventListener('change', mostrarCampos);
-        stockInput.addEventListener('input', actualizarPreviewStock);
-
-        mostrarCampos();
-        actualizarPreviewStock();
+        if (stockInput) {
+            stockInput.addEventListener('input', actualizarPreviewStock);
+            stockInput.addEventListener('change', actualizarPreviewStock);
+            actualizarPreviewStock();
+        }
     });
 </script>
 

@@ -350,6 +350,19 @@
             font-weight: 600;
         }
 
+        .toga-item {
+            transition: all 0.2s ease-in-out;
+        }
+
+        .toga-item:has(.producto-check:checked) {
+            border-color: #0d6efd !important;
+            background: #f8fbff;
+        }
+
+        .panel-configuracion {
+            background: #ffffff;
+        }
+
         @media (max-width: 992px) {
             .app-shell {
                 flex-direction: column;
@@ -423,10 +436,6 @@
                         🧾 Alquileres
                     </a>
                 </nav>
-            </div>
-
-            <div class="small" style="opacity: .8;">
-                ✨ Interfaz mejorada
             </div>
         </aside>
 

@@ -428,6 +428,39 @@
                             <td class="text-right">Q{{ number_format($detalle->precio_unitario, 2) }}</td>
                             <td class="text-right">Q{{ number_format($detalle->subtotal, 2) }}</td>
                         </tr>
+
+                        @if ($detalle->accesorios && $detalle->accesorios->count() > 0)
+                            @foreach ($detalle->accesorios as $accesorio)
+                                <tr>
+                                    <td>{{ $accesorio->producto->codigo ?? 'N/A' }}</td>
+
+                                    <td>
+                                        <span style="padding-left: 18px;">
+                                            ↳
+                                            @if ($accesorio->tipo_cobro === 'EXTRA')
+                                                Extra:
+                                            @else
+                                                Incluye:
+                                            @endif
+
+                                            {{ $accesorio->producto->nombre ?? 'Accesorio eliminado' }}
+                                        </span>
+
+                                        <br>
+
+                                        <span style="padding-left: 32px; color: #6b7280; font-size: 12px;">
+                                            {{ $accesorio->tipo_accesorio }}
+                                            |
+                                            {{ $accesorio->tipo_cobro }}
+                                        </span>
+                                    </td>
+
+                                    <td class="text-right">{{ $accesorio->cantidad }}</td>
+                                    <td class="text-right">Q{{ number_format($accesorio->precio_unitario, 2) }}</td>
+                                    <td class="text-right">Q{{ number_format($accesorio->total_linea, 2) }}</td>
+                                </tr>
+                            @endforeach
+                        @endif
                     @endforeach
                 </tbody>
             </table>
@@ -453,6 +486,27 @@
                     <span>Q{{ number_format($alquiler->saldo_pendiente, 2) }}</span>
                 </div>
             </div>
+
+            @php
+                $subtotalTogas = $alquiler->detalles->sum('subtotal');
+
+                $subtotalExtras = $alquiler->detalles->sum(function ($detalle) {
+                    return $detalle->accesorios
+                        ? $detalle->accesorios->where('tipo_cobro', 'EXTRA')->sum('total_linea')
+                        : 0;
+                });
+            @endphp
+
+            <div class="totals-row">
+                <span>Subtotal togas</span>
+                <span>Q{{ number_format($subtotalTogas, 2) }}</span>
+            </div>
+
+            <div class="totals-row">
+                <span>Extras cobrables</span>
+                <span>Q{{ number_format($subtotalExtras, 2) }}</span>
+            </div>
+
         </div>
 
         <div class="section">

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Alquiler;
 use App\Services\AlquilerService;
+use App\Models\AlquilerDetalleAccesorio;
 use App\Models\Cliente;
 use App\Models\Pago;
 use App\Services\PagoService;
@@ -144,7 +145,9 @@ class WebController extends Controller
             'talla_toga' => 'nullable|string|max:50',
             'observaciones_toga' => 'nullable|string',
 
+            'tipo_birrete' => 'nullable|in:ESTANDAR,NORMAL,UNIVERSITARIO',
             'color_birrete' => 'nullable|string|max:100',
+            'carrera_birrete' => 'nullable|in:ADMINISTRACION,AGRONOMIA,DERECHO,PEDAGOGIA',
 
             'color_collarin' => 'nullable|string|max:100',
 
@@ -179,7 +182,9 @@ class WebController extends Controller
             if ($request->tipo_producto === 'BIRRETE') {
                 ProductoBirrete::create([
                     'producto_id' => $producto->id,
+                    'tipo_birrete' => $request->tipo_birrete ?? 'NORMAL',
                     'color' => $request->color_birrete ?? 'No especificado',
+                    'carrera' => $request->carrera_birrete,
                 ]);
             }
 
@@ -287,15 +292,20 @@ class WebController extends Controller
 
             // Campos específicos de birrete
             'tipo_birrete' => 'nullable|in:ESTANDAR,NORMAL,UNIVERSITARIO',
-            'color_birrete' => 'nullable|string|max:50',
-            'carrera' => 'nullable|in:ADMINISTRACION,AGRONOMIA,DERECHO,PEDAGOGIA',
+            'color_birrete' => 'nullable|string|max:100',
+            'carrera_birrete' => 'nullable|in:ADMINISTRACION,AGRONOMIA,DERECHO,PEDAGOGIA',
             'tiene_borlas_extra' => 'nullable|boolean',
             'descripcion_borlas_extra' => 'nullable|string',
 
             // Campos específicos de collarín
             'tipo_collarin' => 'nullable|in:NORMAL,UNIVERSITARIO',
-            'color_collarin' => 'nullable|in:DORADO,ROJO,VERDE',
+            'color_collarin' => 'nullable|string|max:100',
             'tamano' => 'nullable|in:PEQUENO,GRANDE',
+
+            // Campos específicos de borla
+            'borla_color' => 'nullable|string|max:100',
+            'borla_carrera' => 'nullable|string|max:100',
+            'borla_observaciones' => 'nullable|string',
         ]);
 
         DB::transaction(function () use ($request, $producto) {
@@ -656,20 +666,50 @@ class WebController extends Controller
             ->orderBy('nombres')
             ->get();
 
-        $productos = Producto::where('activo', true)
+        $togas = Producto::with('toga')
+            ->where('activo', true)
+            ->where('tipo_producto', 'TOGA')
             ->where('stock_disponible', '>', 0)
-            ->orderBy('tipo_producto')
             ->orderBy('nombre')
             ->get();
 
-        return view('alquileres.create', compact('clientes', 'productos'));
+        $collarines = Producto::with('collarin')
+            ->where('activo', true)
+            ->where('tipo_producto', 'COLLARIN')
+            ->where('stock_disponible', '>', 0)
+            ->orderBy('nombre')
+            ->get();
+
+        $birretes = Producto::with('birrete')
+            ->where('activo', true)
+            ->where('tipo_producto', 'BIRRETE')
+            ->where('stock_disponible', '>', 0)
+            ->orderBy('nombre')
+            ->get();
+
+        $borlas = Producto::with('borla')
+            ->where('activo', true)
+            ->where('tipo_producto', 'BORLA')
+            ->where('stock_disponible', '>', 0)
+            ->orderBy('nombre')
+            ->get();
+
+        return view('alquileres.create', compact(
+            'clientes',
+            'togas',
+            'collarines',
+            'birretes',
+            'borlas'
+        ));
     }
 
     public function guardarAlquilerWeb(Request $request, AlquilerService $alquilerService)
     {
         $productosFormulario = collect($request->input('productos', []))
             ->filter(function ($producto) {
-                return !empty($producto['producto_id']) && !empty($producto['cantidad']);
+                return !empty($producto['seleccionado'])
+                    && !empty($producto['producto_id'])
+                    && !empty($producto['cantidad']);
             })
             ->values()
             ->toArray();
@@ -685,63 +725,239 @@ class WebController extends Controller
             'descuento' => ['nullable', 'numeric', 'min:0'],
             'observaciones' => ['nullable', 'string', 'max:500'],
 
+            'institucion_representada' => ['nullable', 'string', 'max:255'],
+            'representante_alquiler' => ['nullable', 'string', 'max:255'],
+            'hora_entrega_inicio' => ['nullable', 'date_format:H:i'],
+            'hora_entrega_fin' => ['nullable', 'date_format:H:i', 'after_or_equal:hora_entrega_inicio'],
+
             'productos' => ['required', 'array', 'min:1'],
             'productos.*.producto_id' => ['required', 'exists:productos,id'],
             'productos.*.cantidad' => ['required', 'integer', 'min:1'],
 
-            'institucion_representada' => 'nullable|string|max:255',
-            'representante_alquiler' => 'nullable|string|max:255',
-            'hora_entrega_inicio' => 'nullable|date_format:H:i',
-            'hora_entrega_fin' => 'nullable|date_format:H:i|after_or_equal:hora_entrega_inicio',
+            'productos.*.collarin_id' => ['required', 'exists:productos,id'],
+
+            'productos.*.birrete_incluido' => ['nullable'],
+            'productos.*.birrete_id' => ['nullable', 'exists:productos,id'],
+
+            'productos.*.borla_incluida' => ['nullable'],
+            'productos.*.borla_id' => ['nullable', 'exists:productos,id'],
+
+            'productos.*.birrete_extra_id' => ['nullable', 'exists:productos,id'],
+            'productos.*.birrete_extra_cantidad' => ['nullable', 'integer', 'min:1'],
+
+            'productos.*.borla_extra_id' => ['nullable', 'exists:productos,id'],
+            'productos.*.borla_extra_cantidad' => ['nullable', 'integer', 'min:1'],
         ]);
 
         $detalles = [];
 
         foreach ($datos['productos'] as $productoFormulario) {
-            $producto = Producto::findOrFail($productoFormulario['producto_id']);
+            $toga = Producto::with('toga')->findOrFail($productoFormulario['producto_id']);
 
-            if ((int) $productoFormulario['cantidad'] > $producto->stock_disponible) {
+            if ($toga->tipo_producto !== 'TOGA') {
+                return back()
+                    ->withErrors(['productos' => 'Solo se pueden seleccionar togas como producto principal.'])
+                    ->withInput();
+            }
+
+            $cantidadToga = (int) $productoFormulario['cantidad'];
+
+            if ($cantidadToga > $toga->stock_disponible) {
                 return back()
                     ->withErrors([
-                        'productos' => 'No hay suficiente stock disponible para el producto: ' . $producto->nombre,
+                        'productos' => 'No hay suficiente stock disponible para la toga: ' . $toga->nombre,
                     ])
                     ->withInput();
             }
 
+            $accesorios = [];
+
+            // Collarín obligatorio incluido.
+            $collarin = Producto::findOrFail($productoFormulario['collarin_id']);
+
+            if ($collarin->tipo_producto !== 'COLLARIN') {
+                return back()
+                    ->withErrors(['productos' => 'El accesorio obligatorio debe ser un collarín.'])
+                    ->withInput();
+            }
+
+            if ($cantidadToga > $collarin->stock_disponible) {
+                return back()
+                    ->withErrors([
+                        'productos' => 'No hay suficiente stock disponible para el collarín: ' . $collarin->nombre,
+                    ])
+                    ->withInput();
+            }
+
+            $accesorios[] = [
+                'producto_id' => $collarin->id,
+                'tipo_accesorio' => 'COLLARIN',
+                'tipo_cobro' => 'INCLUIDO',
+                'cantidad' => $cantidadToga,
+                'precio_unitario' => 0,
+            ];
+
+            // Birrete incluido opcional.
+            if (!empty($productoFormulario['birrete_incluido']) && !empty($productoFormulario['birrete_id'])) {
+                $birrete = Producto::findOrFail($productoFormulario['birrete_id']);
+
+                if ($birrete->tipo_producto !== 'BIRRETE') {
+                    return back()
+                        ->withErrors(['productos' => 'El birrete incluido debe ser un producto tipo BIRRETE.'])
+                        ->withInput();
+                }
+
+                if ($cantidadToga > $birrete->stock_disponible) {
+                    return back()
+                        ->withErrors([
+                            'productos' => 'No hay suficiente stock disponible para el birrete: ' . $birrete->nombre,
+                        ])
+                        ->withInput();
+                }
+
+                $accesorios[] = [
+                    'producto_id' => $birrete->id,
+                    'tipo_accesorio' => 'BIRRETE',
+                    'tipo_cobro' => 'INCLUIDO',
+                    'cantidad' => $cantidadToga,
+                    'precio_unitario' => 0,
+                ];
+            }
+
+            // Borla incluida opcional.
+            if (!empty($productoFormulario['borla_incluida']) && !empty($productoFormulario['borla_id'])) {
+                $borla = Producto::findOrFail($productoFormulario['borla_id']);
+
+                if ($borla->tipo_producto !== 'BORLA') {
+                    return back()
+                        ->withErrors(['productos' => 'La borla incluida debe ser un producto tipo BORLA.'])
+                        ->withInput();
+                }
+
+                if ($cantidadToga > $borla->stock_disponible) {
+                    return back()
+                        ->withErrors([
+                            'productos' => 'No hay suficiente stock disponible para la borla: ' . $borla->nombre,
+                        ])
+                        ->withInput();
+                }
+
+                $accesorios[] = [
+                    'producto_id' => $borla->id,
+                    'tipo_accesorio' => 'BORLA',
+                    'tipo_cobro' => 'INCLUIDO',
+                    'cantidad' => $cantidadToga,
+                    'precio_unitario' => 0,
+                ];
+            }
+
+            // Birrete extra cobrable.
+            if (!empty($productoFormulario['birrete_extra_id'])) {
+                $birreteExtra = Producto::with('birrete')->findOrFail($productoFormulario['birrete_extra_id']);
+                $cantidadExtra = (int) ($productoFormulario['birrete_extra_cantidad'] ?? 1);
+
+                if ($birreteExtra->tipo_producto !== 'BIRRETE') {
+                    return back()
+                        ->withErrors(['productos' => 'El birrete extra debe ser un producto tipo BIRRETE.'])
+                        ->withInput();
+                }
+
+                if ($cantidadExtra > $birreteExtra->stock_disponible) {
+                    return back()
+                        ->withErrors([
+                            'productos' => 'No hay suficiente stock disponible para el birrete extra: ' . $birreteExtra->nombre,
+                        ])
+                        ->withInput();
+                }
+
+                $precioExtra = $this->precioExtraAccesorio($birreteExtra);
+
+                $accesorios[] = [
+                    'producto_id' => $birreteExtra->id,
+                    'tipo_accesorio' => 'BIRRETE',
+                    'tipo_cobro' => 'EXTRA',
+                    'cantidad' => $cantidadExtra,
+                    'precio_unitario' => $precioExtra,
+                ];
+            }
+
+            // Borla extra cobrable.
+            if (!empty($productoFormulario['borla_extra_id'])) {
+                $borlaExtra = Producto::findOrFail($productoFormulario['borla_extra_id']);
+                $cantidadExtra = (int) ($productoFormulario['borla_extra_cantidad'] ?? 1);
+
+                if ($borlaExtra->tipo_producto !== 'BORLA') {
+                    return back()
+                        ->withErrors(['productos' => 'La borla extra debe ser un producto tipo BORLA.'])
+                        ->withInput();
+                }
+
+                if ($cantidadExtra > $borlaExtra->stock_disponible) {
+                    return back()
+                        ->withErrors([
+                            'productos' => 'No hay suficiente stock disponible para la borla extra: ' . $borlaExtra->nombre,
+                        ])
+                        ->withInput();
+                }
+
+                $precioExtra = $this->precioExtraAccesorio($borlaExtra);
+
+                $accesorios[] = [
+                    'producto_id' => $borlaExtra->id,
+                    'tipo_accesorio' => 'BORLA',
+                    'tipo_cobro' => 'EXTRA',
+                    'cantidad' => $cantidadExtra,
+                    'precio_unitario' => $precioExtra,
+                ];
+            }
+
             $detalles[] = [
-                'producto_id' => $producto->id,
-                'cantidad' => (int) $productoFormulario['cantidad'],
-                'precio_unitario' => $producto->precio_alquiler,
+                'producto_id' => $toga->id,
+                'cantidad' => $cantidadToga,
+                'precio_unitario' => $toga->precio_alquiler,
+                'accesorios' => $accesorios,
             ];
         }
 
-        $alquiler = $alquilerService->crearAlquiler(
-            (int) $datos['cliente_id'],
-            $detalles,
-            (float) ($datos['descuento'] ?? 0),
-            $datos['fecha_entrega'],
-            $datos['fecha_devolucion_programada'],
-            $datos['observaciones'] ?? null,
-            null
-        );
+        try {
+            $alquiler = $alquilerService->crearAlquiler(
+                (int) $datos['cliente_id'],
+                $detalles,
+                (float) ($datos['descuento'] ?? 0),
+                $datos['fecha_entrega'],
+                $datos['fecha_devolucion_programada'],
+                $datos['observaciones'] ?? null,
+                null
+            );
 
-        $alquiler->update([
-            'institucion_representada' => $request->institucion_representada,
-            'representante_alquiler' => $request->representante_alquiler,
-            'hora_entrega_inicio' => $request->hora_entrega_inicio,
-            'hora_entrega_fin' => $request->hora_entrega_fin,
-        ]);
+            $alquiler->update([
+                'institucion_representada' => $request->institucion_representada,
+                'representante_alquiler' => $request->representante_alquiler,
+                'hora_entrega_inicio' => $request->hora_entrega_inicio,
+                'hora_entrega_fin' => $request->hora_entrega_fin,
+            ]);
 
-        return redirect()
-            ->route('alquileres.web')
-            ->with('success', 'Alquiler creado correctamente.');
+            return redirect()
+                ->route('alquileres.web')
+                ->with('success', 'Alquiler creado correctamente.');
+        } catch (\Exception $e) {
+            return back()
+                ->withErrors(['productos' => $e->getMessage()])
+                ->withInput();
+        }
     }
+
     public function verAlquilerWeb($id)
     {
         $alquiler = Alquiler::with([
             'cliente',
             'detalles.producto',
+            'detalles.producto.toga',
+            'detalles.accesorios.producto',
             'pagos',
+            'detalles.accesorios.producto.birrete',
+            'detalles.accesorios.producto.borla',
+            'detalles.accesorios.producto.collarin',
         ])->findOrFail($id);
 
         return view('alquileres.show', compact('alquiler'));
@@ -752,7 +968,12 @@ class WebController extends Controller
         $alquiler = Alquiler::with([
             'cliente',
             'detalles.producto',
+            'detalles.producto.toga',
+            'detalles.accesorios.producto',
             'pagos',
+            'detalles.accesorios.producto.birrete',
+            'detalles.accesorios.producto.borla',
+            'detalles.accesorios.producto.collarin',
         ])->findOrFail($id);
 
         return view('alquileres.recibo', compact('alquiler'));
@@ -762,7 +983,10 @@ class WebController extends Controller
     {
         $alquiler = Alquiler::with([
             'cliente',
+            'detalles.producto',
             'detalles.producto.toga',
+            'detalles.accesorios.producto',
+            'pagos',
         ])->findOrFail($id);
 
         return view('alquileres.terminos', compact('alquiler'));
@@ -877,9 +1101,9 @@ class WebController extends Controller
             );
 
             if ($request->filled('fecha_limite_pago_final')) {
-            $alquiler->update([
-                'fecha_limite_pago_final' => $request->fecha_limite_pago_final,
-            ]);
+                $alquiler->update([
+                    'fecha_limite_pago_final' => $request->fecha_limite_pago_final,
+                ]);
             }
 
             return redirect()
@@ -928,5 +1152,25 @@ class WebController extends Controller
                 ->withInput()
                 ->withErrors(['nuevo_stock_disponible' => $e->getMessage()]);
         }
+    }
+
+    private function precioExtraAccesorio(Producto $producto): float
+    {
+        if ($producto->tipo_producto === 'BORLA') {
+            return 5.00;
+        }
+
+        if ($producto->tipo_producto === 'BIRRETE') {
+            $producto->birrete()->updateOrCreate(
+                ['producto_id' => $producto->id],
+                [
+                    'tipo_birrete' => $request->tipo_birrete ?? 'NORMAL',
+                    'color' => $request->color_birrete ?? 'No especificado',
+                    'carrera' => $request->carrera_birrete,
+                ]
+            );
+        }
+
+        return 0.00;
     }
 }

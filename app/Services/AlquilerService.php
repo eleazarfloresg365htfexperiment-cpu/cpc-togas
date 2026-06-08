@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Alquiler;
 use App\Models\AlquilerDetalle;
+use App\Models\AlquilerDetalleAccesorio;
 use App\Models\Producto;
 use Illuminate\Support\Facades\DB;
 use Exception;
@@ -49,7 +50,7 @@ class AlquilerService
                     throw new Exception('Cada producto debe incluir producto_id y cantidad.');
                 }
 
-                $producto = Producto::findOrFail($item['producto_id']);
+                $producto = Producto::lockForUpdate()->findOrFail($item['producto_id']);
                 $cantidad = (int) $item['cantidad'];
 
                 if ($cantidad <= 0) {
@@ -67,13 +68,55 @@ class AlquilerService
                 $precioUnitario = (float) $producto->precio_alquiler;
                 $subtotalDetalle = $precioUnitario * $cantidad;
 
-                $subtotal += $subtotalDetalle;
+                $accesoriosPreparados = [];
+                $subtotalAccesorios = 0;
+
+                foreach (($item['accesorios'] ?? []) as $accesorio) {
+                    if (!isset($accesorio['producto_id']) || !isset($accesorio['cantidad'])) {
+                        throw new Exception('Cada accesorio debe incluir producto_id y cantidad.');
+                    }
+
+                    $productoAccesorio = Producto::lockForUpdate()->findOrFail($accesorio['producto_id']);
+                    $cantidadAccesorio = (int) $accesorio['cantidad'];
+
+                    if ($cantidadAccesorio <= 0) {
+                        throw new Exception('La cantidad de cada accesorio debe ser mayor a cero.');
+                    }
+
+                    if (!$productoAccesorio->activo) {
+                        throw new Exception("El accesorio {$productoAccesorio->nombre} está inactivo.");
+                    }
+
+                    if ($productoAccesorio->stock_disponible < $cantidadAccesorio) {
+                        throw new Exception("No hay suficiente stock disponible para {$productoAccesorio->nombre}.");
+                    }
+
+                    $tipoCobro = $accesorio['tipo_cobro'] ?? 'INCLUIDO';
+                    $precioAccesorio = (float) ($accesorio['precio_unitario'] ?? 0);
+                    $totalAccesorio = $precioAccesorio * $cantidadAccesorio;
+
+                    if ($tipoCobro === 'EXTRA') {
+                        $subtotalAccesorios += $totalAccesorio;
+                    }
+
+                    $accesoriosPreparados[] = [
+                        'producto' => $productoAccesorio,
+                        'tipo_accesorio' => $accesorio['tipo_accesorio'],
+                        'tipo_cobro' => $tipoCobro,
+                        'cantidad' => $cantidadAccesorio,
+                        'precio_unitario' => $precioAccesorio,
+                        'total_linea' => $totalAccesorio,
+                    ];
+                }
+
+                $subtotal += $subtotalDetalle + $subtotalAccesorios;
 
                 $productosPreparados[] = [
                     'producto' => $producto,
                     'cantidad' => $cantidad,
                     'precio_unitario' => $precioUnitario,
                     'subtotal' => $subtotalDetalle,
+                    'accesorios' => $accesoriosPreparados,
                 ];
             }
 
@@ -102,7 +145,7 @@ class AlquilerService
             ]);
 
             foreach ($productosPreparados as $item) {
-                AlquilerDetalle::create([
+                $detalleCreado = AlquilerDetalle::create([
                     'alquiler_id' => $alquiler->id,
                     'producto_id' => $item['producto']->id,
                     'cantidad' => $item['cantidad'],
@@ -110,6 +153,18 @@ class AlquilerService
                     'subtotal' => $item['subtotal'],
                     'estado' => 'PENDIENTE',
                 ]);
+
+                foreach (($item['accesorios'] ?? []) as $accesorio) {
+                    AlquilerDetalleAccesorio::create([
+                        'alquiler_detalle_id' => $detalleCreado->id,
+                        'producto_id' => $accesorio['producto']->id,
+                        'tipo_accesorio' => $accesorio['tipo_accesorio'],
+                        'tipo_cobro' => $accesorio['tipo_cobro'],
+                        'cantidad' => $accesorio['cantidad'],
+                        'precio_unitario' => $accesorio['precio_unitario'],
+                        'total_linea' => $accesorio['total_linea'],
+                    ]);
+                }
             }
 
             return $alquiler->fresh(['cliente', 'detalles.producto', 'pagos']);
@@ -121,7 +176,7 @@ class AlquilerService
         ?int $usuarioId = null
     ): Alquiler {
         return DB::transaction(function () use ($alquilerId, $usuarioId) {
-            $alquiler = Alquiler::with(['detalles.producto'])
+            $alquiler = Alquiler::with(['detalles.producto', 'detalles.accesorios.producto'])
                 ->lockForUpdate()
                 ->findOrFail($alquilerId);
 
@@ -154,6 +209,16 @@ class AlquilerService
                     'Entrega de alquiler ' . $alquiler->codigo_recibo
                 );
 
+                foreach ($detalle->accesorios as $accesorio) {
+                    $this->inventarioService->registrarAlquiler(
+                        $accesorio->producto_id,
+                        $accesorio->cantidad,
+                        $alquiler->codigo_recibo,
+                        $usuarioId,
+                        'Entrega de accesorio ' . $accesorio->tipo_accesorio . ' del alquiler ' . $alquiler->codigo_recibo
+                    );
+                }
+
                 $detalle->estado = 'ENTREGADO';
                 $detalle->save();
             }
@@ -171,7 +236,7 @@ class AlquilerService
         ?int $usuarioId = null
     ): Alquiler {
         return DB::transaction(function () use ($alquilerId, $usuarioId) {
-            $alquiler = Alquiler::with(['detalles.producto'])
+            $alquiler = Alquiler::with(['detalles.producto', 'detalles.accesorios.producto'])
                 ->lockForUpdate()
                 ->findOrFail($alquilerId);
 
@@ -199,6 +264,16 @@ class AlquilerService
                     $usuarioId,
                     'Devolución de alquiler ' . $alquiler->codigo_recibo
                 );
+
+                foreach ($detalle->accesorios as $accesorio) {
+                    $this->inventarioService->registrarDevolucion(
+                        $accesorio->producto_id,
+                        $accesorio->cantidad,
+                        $alquiler->codigo_recibo,
+                        $usuarioId,
+                        'Devolución de accesorio ' . $accesorio->tipo_accesorio . ' del alquiler ' . $alquiler->codigo_recibo
+                    );
+                }
 
                 $detalle->estado = 'DEVUELTO';
                 $detalle->save();

@@ -227,95 +227,310 @@
                     </div>
                 </div>
 
-                <div class="alert alert-light border rounded-4 mt-4">
-                    <div class="fw-bold mb-1">📦 Productos disponibles</div>
-                    <div class="text-muted">
-                        Marca los productos que incluirás en el alquiler y escribe la cantidad correspondiente.
+                <div class="card border-0 shadow-sm rounded-4 mb-4">
+                    <div class="card-header bg-white border-0">
+                        <div class="fw-bold">🎓 Togas del alquiler</div>
+                        <small class="text-muted">
+                            Selecciona las togas y configura sus accesorios solo cuando sea necesario.
+                        </small>
+                    </div>
+
+                    <div class="card-body">
+
+                        @if($togas->count() > 0)
+
+                            @foreach($togas as $toga)
+                                <div class="border rounded-4 p-3 mb-3 toga-item" id="toga_item_{{ $toga->id }}">
+
+                                    <div class="row g-3 align-items-center">
+
+                                        <div class="col-md-1 col-2">
+                                            <div class="form-check">
+                                                <input
+                                                    type="checkbox"
+                                                    class="form-check-input producto-check"
+                                                    id="producto_{{ $toga->id }}"
+                                                    name="productos[{{ $toga->id }}][seleccionado]"
+                                                    value="1"
+                                                    data-producto="{{ $toga->id }}"
+                                                    {{ old("productos.$toga->id.seleccionado") ? 'checked' : '' }}
+                                                >
+                                            </div>
+                                        </div>
+
+                                        <div class="col-md-5 col-10">
+                                            <input
+                                                type="hidden"
+                                                name="productos[{{ $toga->id }}][producto_id]"
+                                                value="{{ $toga->id }}"
+                                            >
+
+                                            <div class="fw-bold">
+                                                {{ $toga->nombre }}
+                                            </div>
+
+                                            <div class="text-muted small">
+                                                Código: {{ $toga->codigo }}
+                                                |
+                                                Talla: {{ $toga->toga->talla ?? 'N/A' }}
+                                                |
+                                                Disponible: {{ $toga->stock_disponible }}
+                                            </div>
+
+                                            <div class="small">
+                                                Precio: Q {{ number_format($toga->precio_alquiler, 2) }}
+                                            </div>
+                                        </div>
+
+                                        <div class="col-md-2">
+                                            <label class="form-label small fw-semibold mb-1">Cantidad</label>
+                                            <input
+                                                type="number"
+                                                class="form-control cantidad-input"
+                                                name="productos[{{ $toga->id }}][cantidad]"
+                                                id="cantidad_{{ $toga->id }}"
+                                                value="{{ old("productos.$toga->id.cantidad") }}"
+                                                min="1"
+                                                max="{{ $toga->stock_disponible }}"
+                                                placeholder="0"
+                                                disabled
+                                            >
+                                        </div>
+
+                                        <div class="col-md-4">
+                                            <div
+                                                class="resumen-configuracion small text-muted d-none mb-2"
+                                                id="resumen_{{ $toga->id }}"
+                                            >
+                                                Togas: 0 | Birrete: No | Extras: 0
+                                            </div>
+
+                                            <button
+                                                type="button"
+                                                class="btn btn-outline-primary btn-sm rounded-pill btn-toggle-config d-none"
+                                                data-producto="{{ $toga->id }}"
+                                                id="btn_config_{{ $toga->id }}"
+                                            >
+                                                Mostrar configuración
+                                            </button>
+                                        </div>
+
+                                    </div>
+
+                                    <div
+                                        class="panel-configuracion mt-3 d-none"
+                                        id="panel_config_{{ $toga->id }}"
+                                    >
+                                        <hr>
+
+                                        <div class="row g-3">
+
+                                            <div class="col-md-4">
+                                                <label class="form-label fw-semibold">
+                                                    Collarín obligatorio
+                                                </label>
+
+                                                <select
+                                                    name="productos[{{ $toga->id }}][collarin_id]"
+                                                    id="collarin_{{ $toga->id }}"
+                                                    class="form-select accesorio-input"
+                                                    disabled
+                                                >
+                                                    <option value="">Selecciona collarín...</option>
+
+                                                    @foreach($collarines as $collarin)
+                                                        <option
+                                                            value="{{ $collarin->id }}"
+                                                            {{ old("productos.$toga->id.collarin_id") == $collarin->id ? 'selected' : '' }}
+                                                        >
+                                                            {{ $collarin->nombre }}
+                                                            - Disp: {{ $collarin->stock_disponible }}
+                                                        </option>
+                                                    @endforeach
+                                                </select>
+
+                                                <small class="text-muted">
+                                                    Incluido en el precio de la toga.
+                                                </small>
+                                            </div>
+
+                                            <div class="col-md-4">
+                                                <div class="form-check mb-2">
+                                                    <input
+                                                        type="checkbox"
+                                                        class="form-check-input accesorio-check"
+                                                        id="birrete_incluido_{{ $toga->id }}"
+                                                        name="productos[{{ $toga->id }}][birrete_incluido]"
+                                                        value="1"
+                                                        data-target="birrete_{{ $toga->id }}"
+                                                        data-producto="{{ $toga->id }}"
+                                                        disabled
+                                                        {{ old("productos.$toga->id.birrete_incluido") ? 'checked' : '' }}
+                                                    >
+                                                    <label class="form-check-label fw-semibold" for="birrete_incluido_{{ $toga->id }}">
+                                                        Birrete incluido
+                                                    </label>
+                                                </div>
+
+                                                <select
+                                                    name="productos[{{ $toga->id }}][birrete_id]"
+                                                    id="birrete_{{ $toga->id }}"
+                                                    class="form-select accesorio-select"
+                                                    disabled
+                                                >
+                                                    <option value="">Selecciona birrete...</option>
+
+                                                    @foreach($birretes as $birrete)
+                                                        <option
+                                                            value="{{ $birrete->id }}"
+                                                            {{ old("productos.$toga->id.birrete_id") == $birrete->id ? 'selected' : '' }}
+                                                        >
+                                                            {{ $birrete->nombre }}
+                                                            - Disp: {{ $birrete->stock_disponible }}
+                                                        </option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+
+                                            <div class="col-md-4">
+                                                <div class="form-check mb-2">
+                                                    <input
+                                                        type="checkbox"
+                                                        class="form-check-input accesorio-check"
+                                                        id="borla_incluida_{{ $toga->id }}"
+                                                        name="productos[{{ $toga->id }}][borla_incluida]"
+                                                        value="1"
+                                                        data-target="borla_{{ $toga->id }}"
+                                                        data-producto="{{ $toga->id }}"
+                                                        disabled
+                                                        {{ old("productos.$toga->id.borla_incluida") ? 'checked' : '' }}
+                                                    >
+                                                    <label class="form-check-label fw-semibold" for="borla_incluida_{{ $toga->id }}">
+                                                        Borla incluida
+                                                    </label>
+                                                </div>
+
+                                                <select
+                                                    name="productos[{{ $toga->id }}][borla_id]"
+                                                    id="borla_{{ $toga->id }}"
+                                                    class="form-select accesorio-select"
+                                                    disabled
+                                                >
+                                                    <option value="">Selecciona borla...</option>
+
+                                                    @foreach($borlas as $borla)
+                                                        <option
+                                                            value="{{ $borla->id }}"
+                                                            {{ old("productos.$toga->id.borla_id") == $borla->id ? 'selected' : '' }}
+                                                        >
+                                                            {{ $borla->nombre }}
+                                                            - Disp: {{ $borla->stock_disponible }}
+                                                        </option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+
+                                        </div>
+
+                                        <div class="alert alert-light border rounded-4 mt-3 mb-0">
+                                            <div class="fw-bold mb-2">Extras cobrables</div>
+
+                                            <div class="row g-3">
+
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Birrete extra</label>
+                                                    <select
+                                                        name="productos[{{ $toga->id }}][birrete_extra_id]"
+                                                        id="birrete_extra_{{ $toga->id }}"
+                                                        class="form-select accesorio-input extra-input"
+                                                        data-producto="{{ $toga->id }}"
+                                                        disabled
+                                                    >
+                                                        <option value="">Sin birrete extra</option>
+
+                                                        @foreach($birretes as $birrete)
+                                                            <option
+                                                                value="{{ $birrete->id }}"
+                                                                {{ old("productos.$toga->id.birrete_extra_id") == $birrete->id ? 'selected' : '' }}
+                                                            >
+                                                                {{ $birrete->nombre }}
+                                                                - Disp: {{ $birrete->stock_disponible }}
+                                                            </option>
+                                                        @endforeach
+                                                    </select>
+
+                                                    <input
+                                                        type="number"
+                                                        name="productos[{{ $toga->id }}][birrete_extra_cantidad]"
+                                                        id="birrete_extra_cantidad_{{ $toga->id }}"
+                                                        class="form-control mt-2 accesorio-input extra-cantidad"
+                                                        data-producto="{{ $toga->id }}"
+                                                        value="{{ old("productos.$toga->id.birrete_extra_cantidad") }}"
+                                                        min="1"
+                                                        placeholder="Cantidad extra"
+                                                        disabled
+                                                    >
+
+                                                    <small class="text-muted">
+                                                        Normal: Q25 | Universitario: Q50
+                                                    </small>
+                                                </div>
+
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Borla extra</label>
+                                                    <select
+                                                        name="productos[{{ $toga->id }}][borla_extra_id]"
+                                                        id="borla_extra_{{ $toga->id }}"
+                                                        class="form-select accesorio-input extra-input"
+                                                        data-producto="{{ $toga->id }}"
+                                                        disabled
+                                                    >
+                                                        <option value="">Sin borla extra</option>
+
+                                                        @foreach($borlas as $borla)
+                                                            <option
+                                                                value="{{ $borla->id }}"
+                                                                {{ old("productos.$toga->id.borla_extra_id") == $borla->id ? 'selected' : '' }}
+                                                            >
+                                                                {{ $borla->nombre }}
+                                                                - Disp: {{ $borla->stock_disponible }}
+                                                            </option>
+                                                        @endforeach
+                                                    </select>
+
+                                                    <input
+                                                        type="number"
+                                                        name="productos[{{ $toga->id }}][borla_extra_cantidad]"
+                                                        id="borla_extra_cantidad_{{ $toga->id }}"
+                                                        class="form-control mt-2 accesorio-input extra-cantidad"
+                                                        data-producto="{{ $toga->id }}"
+                                                        value="{{ old("productos.$toga->id.borla_extra_cantidad") }}"
+                                                        min="1"
+                                                        placeholder="Cantidad extra"
+                                                        disabled
+                                                    >
+
+                                                    <small class="text-muted">
+                                                        Borla extra: Q5
+                                                    </small>
+                                                </div>
+
+                                            </div>
+                                        </div>
+
+                                    </div>
+
+                                </div>
+                            @endforeach
+
+                        @else
+                            <div class="alert alert-warning rounded-4">
+                                No hay togas activas disponibles para crear alquileres.
+                            </div>
+                        @endif
+
                     </div>
                 </div>
-
-                @if($productos->count() > 0)
-                    <div class="table-responsive mt-3">
-                        <table class="table table-modern align-middle mb-0">
-                            <thead>
-                                <tr>
-                                    <th>Usar</th>
-                                    <th>Producto</th>
-                                    <th>Tipo</th>
-                                    <th>Disponible</th>
-                                    <th>Precio</th>
-                                    <th style="width: 140px;">Cantidad</th>
-                                </tr>
-                            </thead>
-
-                            <tbody>
-                                @foreach($productos as $producto)
-                                    <tr>
-                                        <td>
-                                            <input type="checkbox"
-                                                   class="form-check-input producto-check"
-                                                   data-producto-id="{{ $producto->id }}"
-                                                   id="producto_{{ $producto->id }}"
-                                                   {{ old("productos.{$producto->id}.seleccionado") ? 'checked' : '' }}>
-                                        </td>
-
-                                        <td>
-                                            <label for="producto_{{ $producto->id }}" class="mb-0">
-                                                <div class="fw-bold">{{ $producto->codigo }}</div>
-                                                <small class="text-muted">{{ $producto->nombre }}</small>
-                                            </label>
-
-                                            <input type="hidden"
-                                                   name="productos[{{ $producto->id }}][producto_id]"
-                                                   value="{{ $producto->id }}">
-                                        </td>
-
-                                        <td>
-                                            @if($producto->tipo_producto === 'TOGA')
-                                                <span class="badge-soft badge-toga">TOGA</span>
-                                            @elseif($producto->tipo_producto === 'BIRRETE')
-                                                <span class="badge-soft badge-birrete">BIRRETE</span>
-                                            @elseif($producto->tipo_producto === 'COLLARIN')
-                                                <span class="badge-soft badge-collarin">COLLARÍN</span>
-                                            @else
-                                                <span class="badge bg-secondary">{{ $producto->tipo_producto }}</span>
-                                            @endif
-                                        </td>
-
-                                        <td>
-                                            @if($producto->stock_disponible > 0)
-                                                <span class="amount-positive">{{ $producto->stock_disponible }}</span>
-                                            @else
-                                                <span class="amount-negative">0</span>
-                                            @endif
-                                        </td>
-
-                                        <td>
-                                            <strong>Q {{ number_format($producto->precio_alquiler, 2) }}</strong>
-                                        </td>
-
-                                        <td>
-                                            <input type="number"
-                                                   name="productos[{{ $producto->id }}][cantidad]"
-                                                   class="form-control cantidad-input"
-                                                   data-producto-id="{{ $producto->id }}"
-                                                   value="{{ old("productos.{$producto->id}.cantidad") }}"
-                                                   min="1"
-                                                   max="{{ $producto->stock_disponible }}"
-                                                   placeholder="0"
-                                                   disabled>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                @else
-                    <div class="alert alert-warning rounded-4 mb-0">
-                        No hay productos activos disponibles para crear alquileres.
-                    </div>
-                @endif
-
                 <div class="alert alert-light border rounded-4 mt-4">
                     <div class="fw-bold mb-1">Resumen de la acción</div>
                     <div class="text-muted">
@@ -364,6 +579,205 @@
             check.addEventListener('change', actualizarEstado);
             actualizarEstado();
         });
+    });
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const checks = document.querySelectorAll('.producto-check');
+
+        function actualizarResumen(productoId) {
+            const resumen = document.getElementById('resumen_' + productoId);
+            const cantidad = document.getElementById('cantidad_' + productoId);
+
+            const birreteCheck = document.getElementById('birrete_incluido_' + productoId);
+            const birreteSelect = document.getElementById('birrete_' + productoId);
+
+            const birreteExtra = document.getElementById('birrete_extra_' + productoId);
+            const birreteExtraCantidad = document.getElementById('birrete_extra_cantidad_' + productoId);
+
+            const borlaExtra = document.getElementById('borla_extra_' + productoId);
+            const borlaExtraCantidad = document.getElementById('borla_extra_cantidad_' + productoId);
+
+            if (!resumen) return;
+
+            const cantidadTogas = parseInt(cantidad?.value || 0, 10) || 0;
+
+            let birrete = 'No';
+
+            if (
+                birreteCheck &&
+                birreteCheck.checked &&
+                birreteSelect &&
+                birreteSelect.value
+            ) {
+                birrete = 'Sí';
+            }
+
+            let totalExtras = 0;
+
+            if (birreteExtra && birreteExtra.value) {
+                totalExtras += parseInt(birreteExtraCantidad?.value || 1, 10) || 1;
+            }
+
+            if (borlaExtra && borlaExtra.value) {
+                totalExtras += parseInt(borlaExtraCantidad?.value || 1, 10) || 1;
+            }
+
+            resumen.textContent = 'Togas: ' + cantidadTogas + ' | Birrete: ' + birrete + ' | Extras: ' + totalExtras;
+        }
+
+        function actualizarAccesoriosIncluidos(productoId) {
+            const birreteCheck = document.getElementById('birrete_incluido_' + productoId);
+            const borlaCheck = document.getElementById('borla_incluida_' + productoId);
+
+            [birreteCheck, borlaCheck].forEach(function (check) {
+                if (!check) return;
+
+                const target = document.getElementById(check.dataset.target);
+
+                if (target) {
+                    target.disabled = !check.checked || check.disabled;
+                    target.required = check.checked && !check.disabled;
+
+                    if (!check.checked || check.disabled) {
+                        target.value = '';
+                    }
+                }
+            });
+
+            actualizarResumen(productoId);
+        }
+
+        function actualizarFila(check) {
+            const productoId = check.dataset.producto;
+
+            const activo = check.checked;
+
+            const cantidad = document.getElementById('cantidad_' + productoId);
+            const collarin = document.getElementById('collarin_' + productoId);
+
+            const panel = document.getElementById('panel_config_' + productoId);
+            const botonConfig = document.getElementById('btn_config_' + productoId);
+            const resumen = document.getElementById('resumen_' + productoId);
+
+            const inputsConfiguracion = document.querySelectorAll(
+                '#panel_config_' + productoId + ' select, ' +
+                '#panel_config_' + productoId + ' input'
+            );
+
+            if (cantidad) {
+                cantidad.disabled = !activo;
+                cantidad.required = activo;
+
+                if (!activo) {
+                    cantidad.value = '';
+                } else if (!cantidad.value || cantidad.value === '0') {
+                    cantidad.value = 1;
+                }
+            }
+
+            if (collarin) {
+                collarin.disabled = !activo;
+                collarin.required = activo;
+
+                if (!activo) {
+                    collarin.value = '';
+                }
+            }
+
+            inputsConfiguracion.forEach(function (input) {
+                if (input.id === 'collarin_' + productoId) return;
+
+                input.disabled = !activo;
+
+                if (!activo) {
+                    if (input.type === 'checkbox') {
+                        input.checked = false;
+                    } else {
+                        input.value = '';
+                    }
+                }
+            });
+
+            if (botonConfig) {
+                botonConfig.classList.toggle('d-none', !activo);
+                botonConfig.textContent = 'Mostrar configuración';
+            }
+
+            if (resumen) {
+                resumen.classList.toggle('d-none', !activo);
+            }
+
+            if (panel) {
+                panel.classList.add('d-none');
+            }
+
+            actualizarAccesoriosIncluidos(productoId);
+            actualizarResumen(productoId);
+        }
+
+        checks.forEach(function (check) {
+            check.addEventListener('change', function () {
+                actualizarFila(check);
+            });
+
+            actualizarFila(check);
+        });
+
+        const botonesConfig = document.querySelectorAll('.btn-toggle-config');
+
+        botonesConfig.forEach(function (boton) {
+            boton.addEventListener('click', function () {
+                const productoId = boton.dataset.producto;
+                const panel = document.getElementById('panel_config_' + productoId);
+
+                if (!panel) return;
+
+                const oculto = panel.classList.contains('d-none');
+
+                if (oculto) {
+                    panel.classList.remove('d-none');
+                    boton.textContent = 'Ocultar configuración';
+                } else {
+                    panel.classList.add('d-none');
+                    boton.textContent = 'Mostrar configuración';
+                }
+
+                actualizarResumen(productoId);
+            });
+        });
+
+        const checksAccesorios = document.querySelectorAll('.accesorio-check');
+
+        checksAccesorios.forEach(function (check) {
+            check.addEventListener('change', function () {
+                const productoId = check.dataset.producto;
+                actualizarAccesoriosIncluidos(productoId);
+            });
+        });
+
+        const camposResumen = document.querySelectorAll('.cantidad-input, .extra-input, .extra-cantidad, .accesorio-select');
+
+        camposResumen.forEach(function (campo) {
+            campo.addEventListener('input', function () {
+                const productoId = campo.dataset.producto || obtenerProductoIdDesdeId(campo.id);
+                actualizarResumen(productoId);
+            });
+
+            campo.addEventListener('change', function () {
+                const productoId = campo.dataset.producto || obtenerProductoIdDesdeId(campo.id);
+                actualizarResumen(productoId);
+            });
+        });
+
+        function obtenerProductoIdDesdeId(id) {
+            if (!id) return null;
+
+            const partes = id.split('_');
+
+            return partes[partes.length - 1];
+        }
     });
 </script>
 

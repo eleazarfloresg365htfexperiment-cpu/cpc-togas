@@ -269,20 +269,24 @@
                                     required>
                             </div>
 
-                            <div class="col-md-6">
-                                <label for="carrera" class="form-label">Carrera</label>
-                                <select name="carrera" id="carrera" class="form-select">
-                                    <option value="">No aplica</option>
-                                    <option value="ADMINISTRACION" {{ old('carrera', $detalleBirrete->carrera ?? '') === 'ADMINISTRACION' ? 'selected' : '' }}>
+                            <div class="col-md-4">
+                                <label class="form-label">Carrera / área</label>
+                                <select name="carrera_birrete" class="form-select">
+                                    <option value="">Sin carrera específica</option>
+
+                                    <option value="ADMINISTRACION" {{ old('carrera_birrete', $detalleBirrete->carrera ?? '') === 'ADMINISTRACION' ? 'selected' : '' }}>
                                         Administración
                                     </option>
-                                    <option value="AGRONOMIA" {{ old('carrera', $detalleBirrete->carrera ?? '') === 'AGRONOMIA' ? 'selected' : '' }}>
+
+                                    <option value="AGRONOMIA" {{ old('carrera_birrete', $detalleBirrete->carrera ?? '') === 'AGRONOMIA' ? 'selected' : '' }}>
                                         Agronomía
                                     </option>
-                                    <option value="DERECHO" {{ old('carrera', $detalleBirrete->carrera ?? '') === 'DERECHO' ? 'selected' : '' }}>
+
+                                    <option value="DERECHO" {{ old('carrera_birrete', $detalleBirrete->carrera ?? '') === 'DERECHO' ? 'selected' : '' }}>
                                         Derecho
                                     </option>
-                                    <option value="PEDAGOGIA" {{ old('carrera', $detalleBirrete->carrera ?? '') === 'PEDAGOGIA' ? 'selected' : '' }}>
+
+                                    <option value="PEDAGOGIA" {{ old('carrera_birrete', $detalleBirrete->carrera ?? '') === 'PEDAGOGIA' ? 'selected' : '' }}>
                                         Pedagogía
                                     </option>
                                 </select>
