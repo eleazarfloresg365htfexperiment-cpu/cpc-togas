@@ -130,26 +130,6 @@
                 </div>
             @endif
 
-            @if ($alquiler->saldo_pendiente > 0 && $alquiler->estado !== 'CANCELADO')
-                <div class="mb-3">
-                    <label for="fecha_limite_pago_final" class="form-label">
-                        Fecha límite para pago final
-                    </label>
-
-                    <input
-                        type="date"
-                        name="fecha_limite_pago_final"
-                        id="fecha_limite_pago_final"
-                        class="form-control"
-                        value="{{ old('fecha_limite_pago_final', optional($alquiler->fecha_limite_pago_final)->format('Y-m-d')) }}"
-                    >
-
-                    <div class="form-text">
-                        Esta fecha aparecerá en la carta de compromiso cuando exista saldo pendiente.
-                    </div>
-                </div>
-            @endif
-
             @if($alquiler->estado === 'CANCELADO')
                 <div class="alert alert-danger rounded-4 mb-0">
                     Este alquiler está cancelado, por lo tanto no se pueden registrar pagos.
@@ -170,6 +150,24 @@
                       data-cancel="Cancelar">
 
                     @csrf
+
+                    <div class="mb-3">
+                        <label for="fecha_limite_pago_final" class="form-label">
+                            Fecha límite para pago final
+                        </label>
+
+                        <input
+                            type="date"
+                            id="fecha_limite_pago_final"
+                            name="fecha_limite_pago_final"
+                            class="form-control"
+                            value="{{ old('fecha_limite_pago_final', $alquiler->fecha_limite_pago_final ? \Carbon\Carbon::parse($alquiler->fecha_limite_pago_final)->format('Y-m-d') : '') }}"
+                        >
+
+                        <div class="form-text">
+                            Esta fecha aparecerá en la carta de compromiso cuando exista saldo pendiente.
+                        </div>
+                    </div>
 
                     <div class="row g-3">
 

@@ -729,6 +729,7 @@ class WebController extends Controller
             'representante_alquiler' => ['nullable', 'string', 'max:255'],
             'hora_entrega_inicio' => ['nullable', 'date_format:H:i'],
             'hora_entrega_fin' => ['nullable', 'date_format:H:i', 'after_or_equal:hora_entrega_inicio'],
+            'fecha_limite_pago_final' => ['nullable', 'date'],
 
             'productos' => ['required', 'array', 'min:1'],
             'productos.*.producto_id' => ['required', 'exists:productos,id'],
@@ -747,7 +748,62 @@ class WebController extends Controller
 
             'productos.*.borla_extra_id' => ['nullable', 'exists:productos,id'],
             'productos.*.borla_extra_cantidad' => ['nullable', 'integer', 'min:1'],
+        ], [
+            'productos.required' => 'Debes seleccionar al menos una toga.',
+            'productos.*.collarin_id.required' => 'Cada toga seleccionada debe tener un collarín obligatorio.',
+            'productos.*.birrete_extra_cantidad.min' => 'La cantidad de birretes extra debe ser al menos 1.',
+            'productos.*.borla_extra_cantidad.min' => 'La cantidad de borlas extra debe ser al menos 1.',
         ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Validación de extras cobrables
+        |--------------------------------------------------------------------------
+        | Evita el error de colocar una cantidad extra sin seleccionar cuál
+        | producto extra será usado. También evita seleccionar un extra sin indicar
+        | la cantidad que se va a cobrar.
+        */
+        foreach ($datos['productos'] as $index => $productoFormulario) {
+            $numeroProducto = $index + 1;
+
+            $birreteExtraId = $productoFormulario['birrete_extra_id'] ?? null;
+            $birreteExtraCantidad = $productoFormulario['birrete_extra_cantidad'] ?? null;
+
+            if (empty($birreteExtraId) && !empty($birreteExtraCantidad)) {
+                return back()
+                    ->withErrors([
+                        'productos' => "En la toga seleccionada #{$numeroProducto}, colocaste cantidad de birrete extra, pero no seleccionaste qué birrete extra será cobrado.",
+                    ])
+                    ->withInput();
+            }
+
+            if (!empty($birreteExtraId) && empty($birreteExtraCantidad)) {
+                return back()
+                    ->withErrors([
+                        'productos' => "En la toga seleccionada #{$numeroProducto}, seleccionaste un birrete extra, pero no colocaste la cantidad.",
+                    ])
+                    ->withInput();
+            }
+
+            $borlaExtraId = $productoFormulario['borla_extra_id'] ?? null;
+            $borlaExtraCantidad = $productoFormulario['borla_extra_cantidad'] ?? null;
+
+            if (empty($borlaExtraId) && !empty($borlaExtraCantidad)) {
+                return back()
+                    ->withErrors([
+                        'productos' => "En la toga seleccionada #{$numeroProducto}, colocaste cantidad de borla extra, pero no seleccionaste qué borla extra será cobrada.",
+                    ])
+                    ->withInput();
+            }
+
+            if (!empty($borlaExtraId) && empty($borlaExtraCantidad)) {
+                return back()
+                    ->withErrors([
+                        'productos' => "En la toga seleccionada #{$numeroProducto}, seleccionaste una borla extra, pero no colocaste la cantidad.",
+                    ])
+                    ->withInput();
+            }
+        }
 
         $detalles = [];
 
@@ -854,7 +910,7 @@ class WebController extends Controller
             // Birrete extra cobrable.
             if (!empty($productoFormulario['birrete_extra_id'])) {
                 $birreteExtra = Producto::with('birrete')->findOrFail($productoFormulario['birrete_extra_id']);
-                $cantidadExtra = (int) ($productoFormulario['birrete_extra_cantidad'] ?? 1);
+                $cantidadExtra = (int) $productoFormulario['birrete_extra_cantidad'];
 
                 if ($birreteExtra->tipo_producto !== 'BIRRETE') {
                     return back()
@@ -884,7 +940,7 @@ class WebController extends Controller
             // Borla extra cobrable.
             if (!empty($productoFormulario['borla_extra_id'])) {
                 $borlaExtra = Producto::findOrFail($productoFormulario['borla_extra_id']);
-                $cantidadExtra = (int) ($productoFormulario['borla_extra_cantidad'] ?? 1);
+                $cantidadExtra = (int) $productoFormulario['borla_extra_cantidad'];
 
                 if ($borlaExtra->tipo_producto !== 'BORLA') {
                     return back()
@@ -935,6 +991,7 @@ class WebController extends Controller
                 'representante_alquiler' => $request->representante_alquiler,
                 'hora_entrega_inicio' => $request->hora_entrega_inicio,
                 'hora_entrega_fin' => $request->hora_entrega_fin,
+                'fecha_limite_pago_final' => $request->fecha_limite_pago_final,
             ]);
 
             return redirect()
@@ -946,6 +1003,7 @@ class WebController extends Controller
                 ->withInput();
         }
     }
+
 
     public function verAlquilerWeb($id)
     {
@@ -1087,7 +1145,12 @@ class WebController extends Controller
             'metodo_pago' => ['required', 'in:EFECTIVO,TRANSFERENCIA,TARJETA,OTRO'],
             'referencia' => ['nullable', 'string', 'max:100'],
             'observaciones' => ['nullable', 'string', 'max:500'],
-            'fecha_limite_pago_final' => 'nullable|date',
+
+            // Aceptamos varios nombres por si la vista lo manda diferente.
+            'fecha_limite_pago_final' => ['nullable', 'date'],
+            'fecha_limite_pago' => ['nullable', 'date'],
+            'fecha_pago_final' => ['nullable', 'date'],
+            'limite_pago_final' => ['nullable', 'date'],
         ]);
 
         try {
@@ -1100,14 +1163,29 @@ class WebController extends Controller
                 null
             );
 
-            if ($request->filled('fecha_limite_pago_final')) {
-                $alquiler->update([
-                    'fecha_limite_pago_final' => $request->fecha_limite_pago_final,
-                ]);
+            /*
+            |--------------------------------------------------------------------------
+            | Guardar fecha límite de pago final
+            |--------------------------------------------------------------------------
+            | Usamos DB::table para evitar cualquier problema con $fillable del modelo.
+            */
+            $fechaLimitePagoFinal =
+                $request->input('fecha_limite_pago_final')
+                ?? $request->input('fecha_limite_pago')
+                ?? $request->input('fecha_pago_final')
+                ?? $request->input('limite_pago_final');
+
+            if (!empty($fechaLimitePagoFinal)) {
+                DB::table('alquileres')
+                    ->where('id', $alquiler->id)
+                    ->update([
+                        'fecha_limite_pago_final' => $fechaLimitePagoFinal,
+                        'updated_at' => now(),
+                    ]);
             }
 
             return redirect()
-                ->route('alquileres.web')
+                ->route('alquileres.show', $alquiler->id)
                 ->with('success', 'Pago registrado correctamente.');
         } catch (\Exception $e) {
             return redirect()
@@ -1161,16 +1239,14 @@ class WebController extends Controller
         }
 
         if ($producto->tipo_producto === 'BIRRETE') {
-            $producto->birrete()->updateOrCreate(
-                ['producto_id' => $producto->id],
-                [
-                    'tipo_birrete' => $request->tipo_birrete ?? 'NORMAL',
-                    'color' => $request->color_birrete ?? 'No especificado',
-                    'carrera' => $request->carrera_birrete,
-                ]
-            );
+            $tipoBirrete = optional($producto->birrete)->tipo_birrete;
+
+            return $tipoBirrete === 'UNIVERSITARIO'
+                ? 50.00
+                : 25.00;
         }
 
         return 0.00;
     }
+
 }

@@ -225,7 +225,7 @@
     </div>
 
     {{-- Representante o encargado(a) del arrendador --}}
-    <div class="campo campo-sm" style="left: 3.35in; top: 9.18in; width: 3.20in;">
+    <div class="campo campo-sm" style="left: 2.35in; top: 2.28in; width: 3.20in;">
         {{ $alquiler->representante_alquiler }}
     </div>
 
@@ -335,11 +335,11 @@
     </div>
 
     {{-- Horario programado de entrega --}}
-    <div class="campo campo-center campo-sm" style="left: 2.45in; top: 7.68in; width: 0.75in;">
+    <div class="campo campo-center campo-sm" style="left: 6.75in; top: 7.52in; width: 0.75in;">
         {{ $horaInicio }}
     </div>
 
-    <div class="campo campo-center campo-sm" style="left: 3.55in; top: 7.68in; width: 0.75in;">
+    <div class="campo campo-center campo-sm" style="left: 7.40in; top: 7.52in; width: 0.75in;">
         {{ $horaFin }}
     </div>
 
@@ -357,15 +357,15 @@
     </div>
 
     {{-- Fecha límite para pago final --}}
-    <div class="campo campo-center campo-sm" style="left: 4.45in; top: 8.64in; width: 0.35in;">
+    <div class="campo campo-center campo-sm" style="left: 1.90in; top: 8.64in; width: 0.35in;">
         {{ optional($fechaLimitePago)->format('d') }}
     </div>
 
-    <div class="campo campo-center campo-sm" style="left: 5.15in; top: 8.64in; width: 0.95in;">
+    <div class="campo campo-center campo-sm" style="left: 2.95in; top: 8.64in; width: 0.95in;">
         {{ $mesLimitePago }}
     </div>
 
-    <div class="campo campo-center campo-sm" style="left: 6.35in; top: 8.64in; width: 0.55in;">
+    <div class="campo campo-center campo-sm" style="left: 4.60in; top: 8.64in; width: 0.55in;">
         {{ optional($fechaLimitePago)->format('Y') }}
     </div>
 

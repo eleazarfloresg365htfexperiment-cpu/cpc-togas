@@ -781,4 +781,84 @@
     });
 </script>
 
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.querySelector('form.confirm-action-form');
+
+        function validarCampoExtra(productoId, tipo) {
+            const select = document.getElementById(tipo + '_extra_' + productoId);
+            const cantidad = document.getElementById(tipo + '_extra_cantidad_' + productoId);
+
+            if (!select || !cantidad) return true;
+
+            const tieneProducto = select.value !== '';
+            const tieneCantidad = cantidad.value !== '';
+
+            select.setCustomValidity('');
+            cantidad.setCustomValidity('');
+
+            if (!tieneProducto && tieneCantidad) {
+                const mensaje = tipo === 'birrete'
+                    ? 'Selecciona qué birrete extra será cobrado.'
+                    : 'Selecciona qué borla extra será cobrada.';
+
+                select.setCustomValidity(mensaje);
+                return false;
+            }
+
+            if (tieneProducto && !tieneCantidad) {
+                const mensaje = tipo === 'birrete'
+                    ? 'Coloca la cantidad de birretes extra.'
+                    : 'Coloca la cantidad de borlas extra.';
+
+                cantidad.setCustomValidity(mensaje);
+                return false;
+            }
+
+            return true;
+        }
+
+        function validarExtras() {
+            let valido = true;
+
+            document.querySelectorAll('.producto-check:checked').forEach(function (check) {
+                const productoId = check.dataset.producto || check.dataset.productoId;
+
+                if (!productoId) return;
+
+                if (!validarCampoExtra(productoId, 'birrete')) {
+                    valido = false;
+                }
+
+                if (!validarCampoExtra(productoId, 'borla')) {
+                    valido = false;
+                }
+            });
+
+            return valido;
+        }
+
+        document.querySelectorAll('.extra-input, .extra-cantidad').forEach(function (campo) {
+            campo.addEventListener('input', validarExtras);
+            campo.addEventListener('change', validarExtras);
+        });
+
+        if (form) {
+            form.addEventListener('submit', function (event) {
+                if (!validarExtras()) {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+
+                    const primerInvalido = form.querySelector(':invalid');
+
+                    if (primerInvalido) {
+                        primerInvalido.reportValidity();
+                    }
+                }
+            }, true);
+        }
+    });
+</script>
+
 @endsection
