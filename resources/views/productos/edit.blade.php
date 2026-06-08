@@ -10,6 +10,7 @@
     $detalleToga = $producto->productoToga ?? $producto->toga ?? null;
     $detalleBirrete = $producto->productoBirrete ?? $producto->birrete ?? null;
     $detalleCollarin = $producto->productoCollarin ?? $producto->collarin ?? null;
+    $detalleBorla = $producto->productoBorla ?? $producto->borla ?? null;
 @endphp
 
 <div class="mb-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
@@ -359,6 +360,51 @@
 
                         </div>
                     </div>
+                @endif
+
+                @if($producto->tipo_producto === 'BORLA')
+
+                    <div class="card mt-4">
+                        <div class="card-header fw-bold">
+                            Detalles de borla
+                        </div>
+
+                        <div class="card-body">
+                            <div class="row g-3">
+
+                                <div class="col-md-6">
+                                    <label class="form-label">Color de borla</label>
+                                    <input
+                                        type="text"
+                                        name="borla_color"
+                                        class="form-control"
+                                        value="{{ old('borla_color', $detalleBorla->color ?? '') }}"
+                                    >
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label">Carrera / área</label>
+                                    <input
+                                        type="text"
+                                        name="borla_carrera"
+                                        class="form-control"
+                                        value="{{ old('borla_carrera', $detalleBorla->carrera ?? '') }}"
+                                    >
+                                </div>
+
+                                <div class="col-md-12">
+                                    <label class="form-label">Observaciones de borla</label>
+                                    <textarea
+                                        name="borla_observaciones"
+                                        class="form-control"
+                                        rows="2"
+                                    >{{ old('borla_observaciones', $detalleBorla->observaciones ?? '') }}</textarea>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+
                 @endif
 
                 <div class="alert alert-light border rounded-4 mt-4">

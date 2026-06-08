@@ -11,6 +11,7 @@ use App\Models\Producto;
 use App\Models\ProductoToga;
 use App\Models\ProductoBirrete;
 use App\Models\ProductoCollarin;
+use App\Models\ProductoBorla;
 use App\Services\InventarioService;
 use App\Models\MovimientoInventario;
 use Illuminate\Support\Facades\DB;
@@ -146,6 +147,10 @@ class WebController extends Controller
             'color_birrete' => 'nullable|string|max:100',
 
             'color_collarin' => 'nullable|string|max:100',
+
+            'borla_color' => 'nullable|string|max:100',
+            'borla_carrera' => 'nullable|string|max:100',
+            'borla_observaciones' => 'nullable|string',
         ]);
 
         DB::transaction(function () use ($request) {
@@ -182,6 +187,15 @@ class WebController extends Controller
                 ProductoCollarin::create([
                     'producto_id' => $producto->id,
                     'color' => $request->color_collarin ?? 'No especificado',
+                ]);
+            }
+
+            if ($request->tipo_producto === 'BORLA') {
+                ProductoBorla::create([
+                    'producto_id' => $producto->id,
+                    'color' => $request->borla_color ?? 'No especificado',
+                    'carrera' => $request->borla_carrera,
+                    'observaciones' => $request->borla_observaciones,
                 ]);
             }
 
@@ -244,14 +258,14 @@ class WebController extends Controller
 
     public function editarProducto($id)
     {
-        $producto = Producto::with(['toga', 'birrete', 'collarin'])->findOrFail($id);
+        $producto = Producto::with(['toga', 'birrete', 'collarin', 'borla'])->findOrFail($id);
 
         return view('productos.edit', compact('producto'));
     }
     
     public function actualizarProducto(Request $request, $id)
     {
-        $producto = Producto::with(['toga', 'birrete', 'collarin'])->findOrFail($id);
+        $producto = Producto::with(['toga', 'birrete', 'collarin', 'borla'])->findOrFail($id);
 
         $request->validate([
             'codigo' => [
@@ -336,6 +350,18 @@ class WebController extends Controller
                     'tamano' => $request->input('tamano', $producto->collarin->tamano),
                 ]);
             }
+
+            if ($producto->tipo_producto === 'BORLA') {
+                $producto->borla()->updateOrCreate(
+                    ['producto_id' => $producto->id],
+                    [
+                        'color' => $request->input('borla_color', $producto->borla->color ?? 'No especificado'),
+                        'carrera' => $request->input('borla_carrera', $producto->borla->carrera ?? null),
+                        'observaciones' => $request->input('borla_observaciones', $producto->borla->observaciones ?? null),
+                    ]
+                );
+            }
+
         });
 
         return redirect()
@@ -686,14 +712,10 @@ class WebController extends Controller
                 'producto_id' => $producto->id,
                 'cantidad' => (int) $productoFormulario['cantidad'],
                 'precio_unitario' => $producto->precio_alquiler,
-                'institucion_representada' => $request->institucion_representada,
-                'representante_alquiler' => $request->representante_alquiler,
-                'hora_entrega_inicio' => $request->hora_entrega_inicio,
-                'hora_entrega_fin' => $request->hora_entrega_fin,
             ];
         }
 
-        $alquilerService->crearAlquiler(
+        $alquiler = $alquilerService->crearAlquiler(
             (int) $datos['cliente_id'],
             $detalles,
             (float) ($datos['descuento'] ?? 0),
@@ -702,6 +724,13 @@ class WebController extends Controller
             $datos['observaciones'] ?? null,
             null
         );
+
+        $alquiler->update([
+            'institucion_representada' => $request->institucion_representada,
+            'representante_alquiler' => $request->representante_alquiler,
+            'hora_entrega_inicio' => $request->hora_entrega_inicio,
+            'hora_entrega_fin' => $request->hora_entrega_fin,
+        ]);
 
         return redirect()
             ->route('alquileres.web')
@@ -846,6 +875,12 @@ class WebController extends Controller
                 $datos['observaciones'] ?? null,
                 null
             );
+
+            if ($request->filled('fecha_limite_pago_final')) {
+            $alquiler->update([
+                'fecha_limite_pago_final' => $request->fecha_limite_pago_final,
+            ]);
+            }
 
             return redirect()
                 ->route('alquileres.web')

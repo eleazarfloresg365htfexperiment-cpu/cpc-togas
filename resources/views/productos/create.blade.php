@@ -92,6 +92,10 @@
                             <option value="COLLARIN" {{ old('tipo_producto') == 'COLLARIN' ? 'selected' : '' }}>
                                 COLLARÍN
                             </option>
+
+                            <option value="BORLA" {{ old('tipo_producto') == 'BORLA' ? 'selected' : '' }}>
+                                BORLA
+                            </option>
                         </select>
                     </div>
 
@@ -223,6 +227,45 @@
 
                     </div>
                 </div>
+
+                <div id="campos-borla" class="tipo-extra d-none">
+                    <div class="row g-4">
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Color de borla</label>
+                            <input
+                                type="text"
+                                name="borla_color"
+                                class="form-control"
+                                value="{{ old('borla_color') }}"
+                                placeholder="Ej. Dorada, roja, azul..."
+                            >
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Carrera / área</label>
+                            <input
+                                type="text"
+                                name="borla_carrera"
+                                class="form-control"
+                                value="{{ old('borla_carrera') }}"
+                                placeholder="Ej. Derecho, Administración, General..."
+                            >
+                        </div>
+
+                        <div class="col-md-12">
+                            <label class="form-label fw-semibold">Observaciones de borla</label>
+                            <textarea
+                                name="borla_observaciones"
+                                class="form-control"
+                                rows="2"
+                                placeholder="Detalles adicionales de la borla..."
+                            >{{ old('borla_observaciones') }}</textarea>
+                        </div>
+
+                    </div>
+                </div>
+
             </div>
 
         </div>
@@ -305,6 +348,7 @@
         const camposToga = document.getElementById('campos-toga');
         const camposBirrete = document.getElementById('campos-birrete');
         const camposCollarin = document.getElementById('campos-collarin');
+        const camposBorla = document.getElementById('campos-borla');
 
         const stockInput = document.getElementById('stock_total');
         const previewStockTotal = document.getElementById('preview_stock_total');
@@ -314,6 +358,8 @@
             camposToga.classList.add('d-none');
             camposBirrete.classList.add('d-none');
             camposCollarin.classList.add('d-none');
+            camposBorla.classList.add('d-none');
+            
         }
 
         function mostrarCampos() {
@@ -339,6 +385,11 @@
             if (tipo === 'COLLARIN') {
                 camposCollarin.classList.remove('d-none');
             }
+
+            if (tipo === 'BORLA') {
+                camposBorla.classList.remove('d-none');
+            }
+            
         }
 
         function actualizarPreviewStock() {
