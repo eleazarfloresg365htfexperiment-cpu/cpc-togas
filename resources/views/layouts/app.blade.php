@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Sistema de control - togas')</title>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -434,6 +435,11 @@
 
                     <a class="nav-link {{ request()->is('alquileres-web*') ? 'active' : '' }}" href="{{ url('/alquileres-web') }}">
                         🧾 Alquileres
+                    </a>
+
+                    <a href="{{ route('calendario.index') }}"
+                    class="nav-link {{ request()->routeIs('calendario.*') ? 'active' : '' }}">
+                        📅 Calendario
                     </a>
                 </nav>
             </div>

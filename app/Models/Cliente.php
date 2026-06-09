@@ -17,6 +17,7 @@ class Cliente extends Model
         'telefono',
         'dpi',
         'direccion',
+        'institucion_representada',
         'observaciones',
         'activo',
     ];

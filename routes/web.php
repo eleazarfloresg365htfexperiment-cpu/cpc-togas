@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\WebController;
 use App\Http\Controllers\ExportacionController;
+use App\Http\Controllers\CalendarioController;
 
 Route::get('/', function () {
     return redirect('/dashboard');
@@ -98,3 +99,10 @@ Route::get('/exportaciones/alquileres/pdf', [ExportacionController::class, 'alqu
     ->name('exportaciones.alquileres.pdf');
 Route::get('/exportaciones/movimientos/pdf', [ExportacionController::class, 'movimientosPdf'])
     ->name('exportaciones.movimientos.pdf');
+
+ //- - - - CALENDARIO - - - -
+
+Route::get('/calendario-web', [CalendarioController::class, 'index'])
+    ->name('calendario.index');
+Route::get('/calendario-web/eventos', [CalendarioController::class, 'eventos'])
+    ->name('calendario.eventos');

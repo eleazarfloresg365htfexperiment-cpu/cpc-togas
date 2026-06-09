@@ -90,13 +90,15 @@
                     <div class="col-md-12">
                         <label for="cliente_id" class="form-label">Cliente</label>
                         <select name="cliente_id" id="cliente_id" class="form-select" required>
-                            <option value="">Selecciona un cliente...</option>
+                            <option value="">Seleccione un cliente</option>
 
                             @foreach($clientes as $cliente)
-                                <option value="{{ $cliente->id }}" {{ old('cliente_id') == $cliente->id ? 'selected' : '' }}>
+                                <option value="{{ $cliente->id }}"
+                                        data-institucion="{{ $cliente->institucion_representada }}"
+                                        {{ old('cliente_id') == $cliente->id ? 'selected' : '' }}>
                                     {{ $cliente->nombres }} {{ $cliente->apellidos }}
-                                    @if($cliente->telefono)
-                                        - {{ $cliente->telefono }}
+                                    @if($cliente->institucion_representada)
+                                        - {{ $cliente->institucion_representada }}
                                     @endif
                                 </option>
                             @endforeach
@@ -107,22 +109,40 @@
                         </small>
                     </div>
 
-                    <div class="col-md-6">
-                        <label for="fecha_entrega" class="form-label">Fecha de entrega</label>
-                        <input type="date"
-                               name="fecha_entrega"
-                               id="fecha_entrega"
-                               class="form-control"
-                               value="{{ old('fecha_entrega') }}">
-                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Fecha de entrega</label>
+                            <input type="date"
+                                name="fecha_entrega"
+                                class="form-control"
+                                value="{{ old('fecha_entrega') }}"
+                                required>
+                        </div>
 
-                    <div class="col-md-6">
-                        <label for="fecha_devolucion_programada" class="form-label">Fecha de devolución programada</label>
-                        <input type="date"
-                               name="fecha_devolucion_programada"
-                               id="fecha_devolucion_programada"
-                               class="form-control"
-                               value="{{ old('fecha_devolucion_programada') }}">
+                        <div class="col-md-3">
+                            <label class="form-label">Hora de entrega</label>
+                            <input type="time"
+                                name="hora_entrega"
+                                class="form-control"
+                                value="{{ old('hora_entrega') }}">
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">Fecha de devolución programada</label>
+                            <input type="date"
+                                name="fecha_devolucion_programada"
+                                class="form-control"
+                                value="{{ old('fecha_devolucion_programada') }}"
+                                required>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">Hora de devolución programada</label>
+                            <input type="time"
+                                name="hora_devolucion_programada"
+                                class="form-control"
+                                value="{{ old('hora_devolucion_programada') }}">
+                        </div>
                     </div>
 
                     <div class="col-md-6">
@@ -859,6 +879,35 @@
             }, true);
         }
     });
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const clienteSelect = document.getElementById('cliente_id');
+    const institucionInput = document.getElementById('institucion_representada');
+
+    if (!clienteSelect || !institucionInput) {
+        return;
+    }
+
+    function completarInstitucionDesdeCliente() {
+        const selectedOption = clienteSelect.options[clienteSelect.selectedIndex];
+
+        if (!selectedOption) {
+            return;
+        }
+
+        const institucion = selectedOption.dataset.institucion || '';
+
+        institucionInput.value = institucion;
+    }
+
+    clienteSelect.addEventListener('change', completarInstitucionDesdeCliente);
+
+    if (clienteSelect.value && !institucionInput.value) {
+        completarInstitucionDesdeCliente();
+    }
+});
 </script>
 
 @endsection

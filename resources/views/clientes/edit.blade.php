@@ -150,6 +150,27 @@
                                placeholder="Ej: Jalapa, Guatemala">
                     </div>
 
+                    <div class="mb-3">
+                        <label for="institucion_representada" class="form-label">
+                            Institución representada <span class="text-muted">(opcional)</span>
+                        </label>
+
+                        <input type="text"
+                            name="institucion_representada"
+                            id="institucion_representada"
+                            class="form-control @error('institucion_representada') is-invalid @enderror"
+                            value="{{ old('institucion_representada', $cliente->institucion_representada) }}"
+                            placeholder="Ejemplo: Colegio El Porvenir, UMG, CPC, etc.">
+
+                        <div class="form-text">
+                            Déjalo vacío si el cliente viene como persona individual.
+                        </div>
+
+                        @error('institucion_representada')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
                     <div class="col-md-12">
                         <label for="observaciones" class="form-label">Observaciones</label>
                         <textarea name="observaciones"

@@ -102,20 +102,20 @@
     </div>
 
     @if($clientes->count() > 0)
-        <div class="table-responsive">
-            <table class="table table-modern align-middle mb-0">
+        <div class="clientes-table-wrap">
+            <table class="table tabla-clientes align-middle">
                 <thead>
                     <tr>
-                        <th>Cliente</th>
-                        <th>Teléfono</th>
-                        <th>DPI</th>
-                        <th>Dirección</th>
-                        <th>Observaciones</th>
-                        <th>Estado</th>
-                        <th class="text-end">Acciones</th>
+                        <th class="col-cliente">Cliente</th>
+                        <th class="col-telefono">Teléfono</th>
+                        <th class="col-dpi">DPI</th>
+                        <th class="col-direccion">Dirección</th>
+                        <th class="col-institucion">Institución</th>
+                        <th class="col-observaciones">Observaciones</th>
+                        <th class="col-estado">Estado</th>
+                        <th class="col-acciones">Acciones</th>
                     </tr>
                 </thead>
-
                 <tbody>
                     @foreach($clientes as $cliente)
                         <tr>
@@ -155,6 +155,18 @@
                             </td>
 
                             <td>
+                                @if($cliente->institucion_representada)
+                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle institucion-badge">
+                                        {{ $cliente->institucion_representada }}
+                                    </span>
+                                @else
+                                    <span class="badge bg-light text-muted border institucion-badge">
+                                        Individual
+                                    </span>
+                                @endif
+                            </td>
+
+                            <td>
                                 @if($cliente->observaciones)
                                     <span class="d-inline-block text-truncate" style="max-width: 220px;" title="{{ $cliente->observaciones }}">
                                         {{ $cliente->observaciones }}
@@ -172,9 +184,8 @@
                                 @endif
                             </td>
 
-                            <td class="text-end">
-                                <div class="d-flex justify-content-end gap-2 flex-wrap">
-
+                            <td>
+                                <div class="acciones-cliente">
                                     <a href="{{ route('clientes.edit', $cliente->id) }}"
                                        class="btn btn-sm btn-outline-primary rounded-pill action-main-btn">
                                         ✏️ Editar
@@ -227,5 +238,192 @@
     @endif
 
 </div>
+
+<style>
+    .tabla-clientes {
+        table-layout: fixed;
+        width: 100%;
+        margin-bottom: 0;
+    }
+
+    .tabla-clientes th {
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        color: #64748b;
+        border-bottom: 1px solid #e5e7eb;
+        padding: 0.85rem 0.75rem;
+    }
+
+    .tabla-clientes td {
+        vertical-align: middle;
+        white-space: normal;
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
+        padding: 1rem 0.75rem;
+    }
+
+    .col-cliente {
+        width: 17%;
+    }
+
+    .col-telefono {
+        width: 11%;
+    }
+
+    .col-dpi {
+        width: 13%;
+    }
+
+    .col-direccion {
+        width: 11%;
+    }
+
+    .col-institucion {
+        width: 15%;
+    }
+
+    .col-observaciones {
+        width: 14%;
+    }
+
+    .col-estado {
+        width: 9%;
+    }
+
+    .col-acciones {
+        width: 10%;
+    }
+
+    .institucion-badge {
+        display: inline-block;
+        max-width: 100%;
+        white-space: normal;
+        text-align: left;
+        line-height: 1.25;
+        padding: 0.45rem 0.6rem;
+        border-radius: 0.55rem;
+    }
+
+    .clientes-table-wrap {
+        width: 100%;
+        overflow-x: visible;
+    }
+
+    .tabla-clientes {
+        width: 100%;
+        table-layout: auto;
+        margin-bottom: 0;
+    }
+
+    .tabla-clientes th {
+        font-size: 0.76rem;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        color: #64748b;
+        border-bottom: 1px solid #e5e7eb;
+        padding: 0.85rem 0.65rem;
+        white-space: nowrap;
+    }
+
+    .tabla-clientes td {
+        vertical-align: middle;
+        padding: 0.95rem 0.65rem;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    .tabla-clientes th:nth-child(1),
+    .tabla-clientes td:nth-child(1) {
+        width: 17%;
+        min-width: 135px;
+    }
+
+    .tabla-clientes th:nth-child(2),
+    .tabla-clientes td:nth-child(2) {
+        width: 10%;
+        min-width: 95px;
+    }
+
+    .tabla-clientes th:nth-child(3),
+    .tabla-clientes td:nth-child(3) {
+        width: 12%;
+        min-width: 115px;
+    }
+
+    .tabla-clientes th:nth-child(4),
+    .tabla-clientes td:nth-child(4) {
+        width: 10%;
+        min-width: 90px;
+    }
+
+    .tabla-clientes th:nth-child(5),
+    .tabla-clientes td:nth-child(5) {
+        width: 16%;
+        max-width: 170px;
+    }
+
+    .tabla-clientes th:nth-child(6),
+    .tabla-clientes td:nth-child(6) {
+        width: 14%;
+        max-width: 150px;
+    }
+
+    .tabla-clientes th:nth-child(7),
+    .tabla-clientes td:nth-child(7) {
+        width: 9%;
+        min-width: 90px;
+    }
+
+    .tabla-clientes th:nth-child(8),
+    .tabla-clientes td:nth-child(8) {
+        width: 12%;
+        min-width: 125px;
+    }
+
+    .institucion-badge {
+        display: inline-block;
+        max-width: 100%;
+        white-space: normal;
+        text-align: left;
+        line-height: 1.2;
+        padding: 0.38rem 0.55rem;
+        border-radius: 0.5rem;
+        font-size: 0.72rem;
+    }
+
+    .acciones-cliente {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+        width: 100%;
+        max-width: 130px;
+    }
+
+    .acciones-cliente .btn {
+        width: 100%;
+        padding: 0.32rem 0.5rem;
+        font-size: 0.77rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .badge-soft,
+    .badge.bg-success-subtle,
+    .badge.bg-danger-subtle,
+    .badge.bg-secondary-subtle {
+        white-space: nowrap;
+    }
+
+    @media (max-width: 1200px) {
+        .clientes-table-wrap {
+            overflow-x: auto;
+        }
+
+        .tabla-clientes {
+            min-width: 980px;
+        }
+    }
+</style>
 
 @endsection

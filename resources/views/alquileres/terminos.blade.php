@@ -121,6 +121,9 @@
 
     $saldo = $alquiler->estado === 'CANCELADO' ? 0 : $alquiler->saldo_pendiente;
 
+    $institucionRepresentada = $alquiler->institucion_representada
+        ?: 'Cliente individual';
+
     $meses = [
         1 => 'enero',
         2 => 'febrero',
@@ -161,6 +164,17 @@
     $horaFin = $alquiler->hora_entrega_fin
         ? \Carbon\Carbon::parse($alquiler->hora_entrega_fin)->format('H:i')
         : '';
+
+    $horaEntregaExacta = $alquiler->hora_entrega
+        ? \Carbon\Carbon::parse($alquiler->hora_entrega)->format('H:i')
+        : '';
+
+    $horaDevolucionProgramada = $alquiler->hora_devolucion_programada
+        ? \Carbon\Carbon::parse($alquiler->hora_devolucion_programada)->format('H:i')
+        : '';
+
+    $horaEntregaMostrarInicio = $horaInicio ?: $horaEntregaExacta;
+    $horaEntregaMostrarFin = $horaFin ?: $horaEntregaExacta;
 
     $tallas = [
         '4' => 0,
@@ -205,6 +219,7 @@
 
     $totalTogas = array_sum($tallas);
 @endphp
+
 <div class="sheet page-1">
 
     {{-- Fecha superior --}}
@@ -229,12 +244,12 @@
         {{ $alquiler->representante_alquiler }}
     </div>
 
-    {{-- Arrendatario --}}
     {{-- Institución representada --}}
     <div class="campo campo-sm" style="left: 2.73in; top: 3.38in; width: 3.45in;">
-        {{ $alquiler->institucion_representada }}
+        {{ $institucionRepresentada }}
     </div>
 
+    {{-- Arrendatario --}}
     <div class="campo campo-sm" style="left: 2.28in; top: 3.55in; width: 3.45in;">
         {{ $clienteNombre }}
     </div>
@@ -336,15 +351,17 @@
 
     {{-- Horario programado de entrega --}}
     <div class="campo campo-center campo-sm" style="left: 6.75in; top: 7.52in; width: 0.75in;">
-        {{ $horaInicio }}
+        {{ $horaEntregaMostrarInicio }}
     </div>
 
     <div class="campo campo-center campo-sm" style="left: 7.40in; top: 7.52in; width: 0.75in;">
-        {{ $horaFin }}
+        {{ $horaEntregaMostrarFin }}
     </div>
 
-    <div class="campo campo-center campo-sm" style="left: 6.35in; top: 7.68in; width: 1.20in;">
+    {{-- Fecha y hora de devolución programada --}}
+    <div class="campo campo-center campo-sm" style="left: 6.20in; top: 7.68in; width: 1.65in;">
         {{ optional($fechaDevolucion)->format('d/m/Y') }}
+        {{ $horaDevolucionProgramada ? ' ' . $horaDevolucionProgramada : '' }}
     </div>
 
     {{-- Valores --}}

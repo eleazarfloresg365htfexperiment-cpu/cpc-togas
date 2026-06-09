@@ -511,7 +511,8 @@ class WebController extends Controller
                     ->orWhere('apellidos', 'like', "%{$buscar}%")
                     ->orWhere('telefono', 'like', "%{$buscar}%")
                     ->orWhere('dpi', 'like', "%{$buscar}%")
-                    ->orWhere('direccion', 'like', "%{$buscar}%");
+                    ->orWhere('direccion', 'like', "%{$buscar}%")
+                    ->orWhere('institucion_representada', 'like', "%{$buscar}%");
                 });
             })
             ->when($estado !== null && $estado !== '', function ($query) use ($estado) {
@@ -547,6 +548,7 @@ class WebController extends Controller
             'telefono' => ['nullable', 'string', 'max:25'],
             'dpi' => ['nullable', 'string', 'max:20', 'unique:clientes,dpi'],
             'direccion' => ['nullable', 'string', 'max:255'],
+            'institucion_representada' => ['nullable', 'string', 'max:255'],
             'observaciones' => ['nullable', 'string', 'max:500'],
         ]);
 
@@ -576,6 +578,7 @@ class WebController extends Controller
             'telefono' => ['nullable', 'string', 'max:25'],
             'dpi' => ['nullable', 'string', 'max:20', 'unique:clientes,dpi,' . $cliente->id],
             'direccion' => ['nullable', 'string', 'max:255'],
+            'institucion_representada' => ['nullable', 'string', 'max:255'],
             'observaciones' => ['nullable', 'string', 'max:500'],
         ]);
 
@@ -721,7 +724,9 @@ class WebController extends Controller
         $datos = $request->validate([
             'cliente_id' => ['required', 'exists:clientes,id'],
             'fecha_entrega' => ['required', 'date'],
+            'hora_entrega' => ['nullable', 'date_format:H:i'],
             'fecha_devolucion_programada' => ['required', 'date', 'after_or_equal:fecha_entrega'],
+            'hora_devolucion_programada' => ['nullable', 'date_format:H:i'],
             'descuento' => ['nullable', 'numeric', 'min:0'],
             'observaciones' => ['nullable', 'string', 'max:500'],
 
@@ -754,6 +759,19 @@ class WebController extends Controller
             'productos.*.birrete_extra_cantidad.min' => 'La cantidad de birretes extra debe ser al menos 1.',
             'productos.*.borla_extra_cantidad.min' => 'La cantidad de borlas extra debe ser al menos 1.',
         ]);
+
+        if (
+            $request->fecha_entrega === $request->fecha_devolucion_programada &&
+            $request->hora_entrega &&
+            $request->hora_devolucion_programada &&
+            $request->hora_devolucion_programada <= $request->hora_entrega
+        ) {
+            return back()
+                ->withInput()
+                ->withErrors([
+                    'hora_devolucion_programada' => 'Si la entrega y devolución son el mismo día, la hora de devolución debe ser posterior a la hora de entrega.',
+                ]);
+        }
 
         /*
         |--------------------------------------------------------------------------
@@ -989,8 +1007,15 @@ class WebController extends Controller
             $alquiler->update([
                 'institucion_representada' => $request->institucion_representada,
                 'representante_alquiler' => $request->representante_alquiler,
+
+                // Horario exacto del alquiler
+                'hora_entrega' => $request->hora_entrega,
+                'hora_devolucion_programada' => $request->hora_devolucion_programada,
+
+                // Rango de horario mostrado en carta/entrega
                 'hora_entrega_inicio' => $request->hora_entrega_inicio,
                 'hora_entrega_fin' => $request->hora_entrega_fin,
+
                 'fecha_limite_pago_final' => $request->fecha_limite_pago_final,
             ]);
 

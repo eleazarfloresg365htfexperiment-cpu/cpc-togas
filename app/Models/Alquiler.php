@@ -22,11 +22,13 @@ class Alquiler extends Model
 
         'fecha_alquiler',
         'fecha_entrega',
+        'hora_entrega',
         'hora_entrega_inicio',
         'hora_entrega_fin',
 
         'fecha_devolucion_programada',
         'fecha_devolucion_real',
+        'hora_devolucion_programada',
 
         'estado',
         'estado_pago',

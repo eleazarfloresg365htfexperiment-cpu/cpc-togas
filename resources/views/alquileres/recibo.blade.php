@@ -281,6 +281,49 @@
 </head>
 <body>
 
+    @php
+        $clienteNombre = trim(($alquiler->cliente->nombres ?? '') . ' ' . ($alquiler->cliente->apellidos ?? ''));
+
+        $institucionRepresentada = $alquiler->institucion_representada
+            ?: 'Cliente individual';
+
+        $fechaAlquiler = $alquiler->fecha_alquiler
+            ? \Carbon\Carbon::parse($alquiler->fecha_alquiler)->format('d/m/Y')
+            : 'N/A';
+
+        $fechaEntrega = $alquiler->fecha_entrega
+            ? \Carbon\Carbon::parse($alquiler->fecha_entrega)->format('d/m/Y')
+            : 'N/A';
+
+        $horaEntrega = $alquiler->hora_entrega
+            ? \Carbon\Carbon::parse($alquiler->hora_entrega)->format('h:i A')
+            : null;
+
+        $fechaDevolucionProgramada = $alquiler->fecha_devolucion_programada
+            ? \Carbon\Carbon::parse($alquiler->fecha_devolucion_programada)->format('d/m/Y')
+            : 'N/A';
+
+        $horaDevolucionProgramada = $alquiler->hora_devolucion_programada
+            ? \Carbon\Carbon::parse($alquiler->hora_devolucion_programada)->format('h:i A')
+            : null;
+
+        $fechaDevolucionReal = $alquiler->fecha_devolucion_real
+            ? \Carbon\Carbon::parse($alquiler->fecha_devolucion_real)->format('d/m/Y')
+            : 'Pendiente';
+
+        $fechaLimitePagoFinal = $alquiler->fecha_limite_pago_final
+            ? \Carbon\Carbon::parse($alquiler->fecha_limite_pago_final)->format('d/m/Y')
+            : 'No registrada';
+
+        $horaEntregaInicio = $alquiler->hora_entrega_inicio
+            ? \Carbon\Carbon::parse($alquiler->hora_entrega_inicio)->format('h:i A')
+            : null;
+
+        $horaEntregaFin = $alquiler->hora_entrega_fin
+            ? \Carbon\Carbon::parse($alquiler->hora_entrega_fin)->format('h:i A')
+            : null;
+    @endphp
+
     <div class="actions">
         <a href="{{ route('alquileres.show', $alquiler->id) }}" class="btn btn-secondary">
             Volver
@@ -332,21 +375,26 @@
                 <strong>Estado de pago</strong>
 
                 @if ($alquiler->estado === 'CANCELADO')
-                    <span class="badge bg-secondary">NO APLICA</span>
+                    <span class="badge badge-muted">NO APLICA</span>
                 @elseif ($alquiler->estado_pago === 'PENDIENTE')
-                    <span class="badge bg-danger">PENDIENTE</span>
+                    <span class="badge badge-danger">PENDIENTE</span>
                 @elseif ($alquiler->estado_pago === 'PARCIAL')
-                    <span class="badge bg-warning text-dark">PARCIAL</span>
+                    <span class="badge badge-warning">PARCIAL</span>
                 @elseif ($alquiler->estado_pago === 'PAGADO')
-                    <span class="badge bg-success">PAGADO</span>
+                    <span class="badge badge-success">PAGADO</span>
                 @else
-                    <span class="badge bg-dark">{{ $alquiler->estado_pago }}</span>
+                    <span class="badge badge-muted">{{ $alquiler->estado_pago }}</span>
                 @endif
             </div>
 
             <div class="status-card">
                 <strong>Saldo pendiente</strong>
-                Q{{ number_format($alquiler->saldo_pendiente, 2) }}
+
+                @if ($alquiler->estado === 'CANCELADO')
+                    Anulado
+                @else
+                    Q{{ number_format($alquiler->saldo_pendiente, 2) }}
+                @endif
             </div>
         </div>
 
@@ -357,8 +405,7 @@
                 <div class="field">
                     <strong>Nombre completo</strong>
                     <span>
-                        {{ $alquiler->cliente->nombres ?? 'Sin cliente' }}
-                        {{ $alquiler->cliente->apellidos ?? '' }}
+                        {{ $clienteNombre ?: 'Sin cliente' }}
                     </span>
                 </div>
 
@@ -376,37 +423,110 @@
                     <strong>Dirección</strong>
                     <span>{{ $alquiler->cliente->direccion ?? 'N/A' }}</span>
                 </div>
+
+                <div class="field">
+                    <strong>Institución representada</strong>
+                    <span>{{ $institucionRepresentada }}</span>
+                </div>
+
+                <div class="field">
+                    <strong>Representante del alquiler</strong>
+                    <span>{{ $alquiler->representante_alquiler ?: 'No registrado' }}</span>
+                </div>
             </div>
         </div>
 
         <div class="section">
-            <div class="section-title">Fechas del alquiler</div>
+            <div class="section-title">Fechas y horarios del alquiler</div>
 
             <div class="grid">
                 <div class="field">
                     <strong>Fecha de alquiler</strong>
-                    <span>{{ $alquiler->fecha_alquiler ? \Carbon\Carbon::parse($alquiler->fecha_alquiler)->format('d/m/Y') : 'N/A' }}</span>
+                    <span>{{ $fechaAlquiler }}</span>
                 </div>
 
                 <div class="field">
-                    <strong>Fecha de entrega</strong>
-                    <span>{{ $alquiler->fecha_entrega ? \Carbon\Carbon::parse($alquiler->fecha_entrega)->format('d/m/Y') : 'N/A' }}</span>
+                    <strong>Entrega programada</strong>
+                    <span>
+                        {{ $fechaEntrega }}
+                        @if ($horaEntrega)
+                            - {{ $horaEntrega }}
+                        @else
+                            - Hora no registrada
+                        @endif
+                    </span>
                 </div>
 
                 <div class="field">
                     <strong>Devolución programada</strong>
-                    <span>{{ $alquiler->fecha_devolucion_programada ? \Carbon\Carbon::parse($alquiler->fecha_devolucion_programada)->format('d/m/Y') : 'N/A' }}</span>
+                    <span>
+                        {{ $fechaDevolucionProgramada }}
+                        @if ($horaDevolucionProgramada)
+                            - {{ $horaDevolucionProgramada }}
+                        @else
+                            - Hora no registrada
+                        @endif
+                    </span>
                 </div>
 
                 <div class="field">
                     <strong>Devolución real</strong>
-                    <span>{{ $alquiler->fecha_devolucion_real ? \Carbon\Carbon::parse($alquiler->fecha_devolucion_real)->format('d/m/Y') : 'Pendiente' }}</span>
+                    <span>{{ $fechaDevolucionReal }}</span>
+                </div>
+
+                <div class="field">
+                    <strong>Fecha límite de pago final</strong>
+                    <span>{{ $fechaLimitePagoFinal }}</span>
+                </div>
+
+                <div class="field">
+                    <strong>Rango de atención / recogida</strong>
+                    <span>
+                        @if ($horaEntregaInicio || $horaEntregaFin)
+                            {{ $horaEntregaInicio ?: '--:--' }}
+                            a
+                            {{ $horaEntregaFin ?: '--:--' }}
+                        @else
+                            No registrado
+                        @endif
+                    </span>
                 </div>
             </div>
         </div>
 
         <div class="section">
             <div class="section-title">Productos alquilados</div>
+
+            @php
+                /*
+                |--------------------------------------------------------------------------
+                | Resumen de importes
+                |--------------------------------------------------------------------------
+                | $alquiler->subtotal debe representar el monto ANTES de descuento:
+                | productos principales + extras cobrables.
+                |
+                | $alquiler->total debe representar el monto DESPUÉS de descuento.
+                */
+
+                $subtotalTogas = $alquiler->detalles->sum(function ($detalle) {
+                    return (float) (
+                        $detalle->total_linea
+                        ?? $detalle->subtotal
+                        ?? ((float) $detalle->cantidad * (float) $detalle->precio_unitario)
+                    );
+                });
+
+                $subtotalExtras = $alquiler->detalles->sum(function ($detalle) {
+                    return $detalle->accesorios
+                        ? $detalle->accesorios->where('tipo_cobro', 'EXTRA')->sum('total_linea')
+                        : 0;
+                });
+
+                $subtotalAntesDescuento = (float) ($alquiler->subtotal ?? ($subtotalTogas + $subtotalExtras));
+                $descuentoAplicado = (float) ($alquiler->descuento ?? 0);
+                $totalFinal = (float) ($alquiler->total ?? max($subtotalAntesDescuento - $descuentoAplicado, 0));
+                $saldoPendiente = (float) ($alquiler->saldo_pendiente ?? 0);
+            @endphp
 
             <table>
                 <thead>
@@ -421,12 +541,20 @@
 
                 <tbody>
                     @foreach ($alquiler->detalles as $detalle)
+                        @php
+                            $lineaDetalle = (float) (
+                                $detalle->total_linea
+                                ?? $detalle->subtotal
+                                ?? ((float) $detalle->cantidad * (float) $detalle->precio_unitario)
+                            );
+                        @endphp
+
                         <tr>
                             <td>{{ $detalle->producto->codigo ?? 'N/A' }}</td>
                             <td>{{ $detalle->producto->nombre ?? 'Producto eliminado' }}</td>
                             <td class="text-right">{{ $detalle->cantidad }}</td>
                             <td class="text-right">Q{{ number_format($detalle->precio_unitario, 2) }}</td>
-                            <td class="text-right">Q{{ number_format($detalle->subtotal, 2) }}</td>
+                            <td class="text-right">Q{{ number_format($lineaDetalle, 2) }}</td>
                         </tr>
 
                         @if ($detalle->accesorios && $detalle->accesorios->count() > 0)
@@ -467,46 +595,40 @@
 
             <div class="totals">
                 <div class="totals-row">
-                    <span>Subtotal</span>
-                    <span>Q{{ number_format($alquiler->subtotal, 2) }}</span>
+                    <span>Subtotal togas</span>
+                    <span>Q{{ number_format($subtotalTogas, 2) }}</span>
                 </div>
 
                 <div class="totals-row">
-                    <span>Descuento</span>
-                    <span>Q{{ number_format($alquiler->descuento, 2) }}</span>
+                    <span>Extras cobrables</span>
+                    <span>Q{{ number_format($subtotalExtras, 2) }}</span>
+                </div>
+
+                <div class="totals-row">
+                    <span>Subtotal antes de descuento</span>
+                    <span>Q{{ number_format($subtotalAntesDescuento, 2) }}</span>
+                </div>
+
+                <div class="totals-row">
+                    <span>Descuento aplicado</span>
+                    <span>- Q{{ number_format($descuentoAplicado, 2) }}</span>
                 </div>
 
                 <div class="totals-row total">
-                    <span>Total</span>
-                    <span>Q{{ number_format($alquiler->total, 2) }}</span>
+                    <span>Total final</span>
+                    <span>Q{{ number_format($totalFinal, 2) }}</span>
                 </div>
 
                 <div class="totals-row balance">
                     <span>Saldo pendiente</span>
-                    <span>Q{{ number_format($alquiler->saldo_pendiente, 2) }}</span>
+
+                    @if ($alquiler->estado === 'CANCELADO')
+                        <span>Anulado</span>
+                    @else
+                        <span>Q{{ number_format($saldoPendiente, 2) }}</span>
+                    @endif
                 </div>
             </div>
-
-            @php
-                $subtotalTogas = $alquiler->detalles->sum('subtotal');
-
-                $subtotalExtras = $alquiler->detalles->sum(function ($detalle) {
-                    return $detalle->accesorios
-                        ? $detalle->accesorios->where('tipo_cobro', 'EXTRA')->sum('total_linea')
-                        : 0;
-                });
-            @endphp
-
-            <div class="totals-row">
-                <span>Subtotal togas</span>
-                <span>Q{{ number_format($subtotalTogas, 2) }}</span>
-            </div>
-
-            <div class="totals-row">
-                <span>Extras cobrables</span>
-                <span>Q{{ number_format($subtotalExtras, 2) }}</span>
-            </div>
-
         </div>
 
         <div class="section">

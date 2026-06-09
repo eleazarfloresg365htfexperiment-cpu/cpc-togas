@@ -125,6 +125,13 @@
         'PAGADO' => 'badge-soft-success',
         default => 'badge-soft-secondary',
     };
+    $horaEntrega = $alquiler->hora_entrega
+        ? \Carbon\Carbon::parse($alquiler->hora_entrega)->format('h:i A')
+        : null;
+
+    $horaDevolucionProgramada = $alquiler->hora_devolucion_programada
+        ? \Carbon\Carbon::parse($alquiler->hora_devolucion_programada)->format('h:i A')
+        : null;
 @endphp
 
 <div class="container-fluid px-3 px-md-4 py-4">
@@ -260,35 +267,56 @@
                     <div class="detalle-card p-4 h-100">
                         <div class="detalle-icon">🚚</div>
 
-                        <div class="text-muted small">Fecha de entrega</div>
+                        <div class="text-muted small">Entrega programada</div>
+
                         <div class="fw-bold fs-4">
                             {{ optional($alquiler->fecha_entrega)->format('d/m/Y') }}
                         </div>
-                        <div class="text-muted small">
-                            Fecha programada de entrega
+
+                        <div class="fw-semibold text-primary mt-1">
+                            @if($horaEntrega)
+                                {{ $horaEntrega }}
+                            @else
+                                <span class="text-muted">Hora no registrada</span>
+                            @endif
+                        </div>
+
+                        <div class="text-muted small mt-1">
+                            Día y hora en que el cliente recibe las togas
                         </div>
 
                         @if($alquiler->hora_entrega_inicio || $alquiler->hora_entrega_fin)
-                            <div class="mt-2 text-muted small">
-                                Horario:
-                                {{ $alquiler->hora_entrega_inicio ? \Carbon\Carbon::parse($alquiler->hora_entrega_inicio)->format('H:i') : '--:--' }}
+                            <hr>
+
+                            <div class="text-muted small">Rango de atención / recogida</div>
+                            <div class="fw-semibold">
+                                {{ $alquiler->hora_entrega_inicio ? \Carbon\Carbon::parse($alquiler->hora_entrega_inicio)->format('h:i A') : '--:--' }}
                                 a
-                                {{ $alquiler->hora_entrega_fin ? \Carbon\Carbon::parse($alquiler->hora_entrega_fin)->format('H:i') : '--:--' }}
+                                {{ $alquiler->hora_entrega_fin ? \Carbon\Carbon::parse($alquiler->hora_entrega_fin)->format('h:i A') : '--:--' }}
                             </div>
                         @endif
                     </div>
                 </div>
-
                 <div class="col-md-4">
                     <div class="detalle-card p-4 h-100">
                         <div class="detalle-icon">↩️</div>
 
                         <div class="text-muted small">Devolución programada</div>
+
                         <div class="fw-bold fs-4">
                             {{ optional($alquiler->fecha_devolucion_programada)->format('d/m/Y') }}
                         </div>
-                        <div class="text-muted small">
-                            Fecha esperada de devolución
+
+                        <div class="fw-semibold text-warning mt-1">
+                            @if($horaDevolucionProgramada)
+                                {{ $horaDevolucionProgramada }}
+                            @else
+                                <span class="text-muted">Hora no registrada</span>
+                            @endif
+                        </div>
+
+                        <div class="text-muted small mt-1">
+                            Día y hora en que el cliente debe devolver las togas
                         </div>
                     </div>
                 </div>
@@ -538,9 +566,25 @@
                                                     <strong>Q{{ number_format($detalle->precio_unitario, 2) }}</strong>
                                                 </div>
 
-                                                <div class="d-flex justify-content-between small">
-                                                    <span class="text-muted">Subtotal toga</span>
-                                                    <strong>Q{{ number_format($detalle->subtotal, 2) }}</strong>
+                                                <div class="col-md-4">
+                                                    <div class="text-muted small">Subtotal</div>
+                                                    <div class="fw-bold">
+                                                        Q {{ number_format($alquiler->subtotal, 2) }}
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-md-4">
+                                                    <div class="text-muted small">Descuento</div>
+                                                    <div class="fw-bold text-danger">
+                                                        Q {{ number_format($alquiler->descuento, 2) }}
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-md-4">
+                                                    <div class="text-muted small">Total final</div>
+                                                    <div class="fw-bold text-success">
+                                                        Q {{ number_format($alquiler->total, 2) }}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
