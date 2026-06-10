@@ -109,39 +109,76 @@
                         </small>
                     </div>
 
-                    <div class="row g-3">
-                        <div class="col-md-3">
-                            <label class="form-label">Fecha de entrega</label>
+                    <div class="row g-3 align-items-start">
+                        <div class="col-md-4">
+                            <label class="form-label d-flex align-items-end" style="min-height: 48px;">
+                                Fecha de reserva
+                            </label>
+                            <input type="date"
+                                name="fecha_alquiler"
+                                id="fecha_alquiler"
+                                class="form-control"
+                                value="{{ old('fecha_alquiler', now()->toDateString()) }}"
+                                required>
+                            <small class="text-muted">
+                                Día en que se registra o acuerda la reserva.
+                            </small>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label d-flex align-items-end" style="min-height: 48px;">
+                                Fecha de entrega
+                            </label>
                             <input type="date"
                                 name="fecha_entrega"
+                                id="fecha_entrega"
                                 class="form-control"
                                 value="{{ old('fecha_entrega') }}"
                                 required>
+                            <small class="text-muted">
+                                Día programado para retirar las togas.
+                            </small>
                         </div>
 
-                        <div class="col-md-3">
-                            <label class="form-label">Hora de entrega</label>
+                        <div class="col-md-4">
+                            <label class="form-label d-flex align-items-end" style="min-height: 48px;">
+                                Hora de entrega
+                            </label>
                             <input type="time"
                                 name="hora_entrega"
                                 class="form-control"
                                 value="{{ old('hora_entrega') }}">
+                            <small class="text-muted">
+                                Opcional.
+                            </small>
                         </div>
 
-                        <div class="col-md-3">
-                            <label class="form-label">Fecha de devolución programada</label>
+                        <div class="col-md-6">
+                            <label class="form-label d-flex align-items-end" style="min-height: 48px;">
+                                Fecha de devolución programada
+                            </label>
                             <input type="date"
                                 name="fecha_devolucion_programada"
+                                id="fecha_devolucion_programada"
                                 class="form-control"
                                 value="{{ old('fecha_devolucion_programada') }}"
                                 required>
+                            <small class="text-muted">
+                                Día límite para devolver sin mora.
+                            </small>
                         </div>
 
-                        <div class="col-md-3">
-                            <label class="form-label">Hora de devolución programada</label>
+                        <div class="col-md-6">
+                            <label class="form-label d-flex align-items-end" style="min-height: 48px;">
+                                Hora de devolución programada
+                            </label>
                             <input type="time"
                                 name="hora_devolucion_programada"
                                 class="form-control"
                                 value="{{ old('hora_devolucion_programada') }}">
+                            <small class="text-muted">
+                                Opcional.
+                            </small>
                         </div>
                     </div>
 

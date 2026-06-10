@@ -76,8 +76,66 @@
         background: #ffffff;
     }
 
-    .resumen-cobro-table td {
-        padding: 0.7rem 0;
+    .resumen-cobro-card {
+        min-width: 0;
+    }
+
+    .resumen-cobro-linea {
+        padding: 10px 0;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    .resumen-cobro-linea span {
+        display: block;
+        font-size: 0.92rem;
+        line-height: 1.25;
+        word-break: normal;
+        overflow-wrap: normal;
+        hyphens: none;
+    }
+
+    .resumen-cobro-linea strong {
+        display: block;
+        margin-top: 4px;
+        white-space: nowrap;
+        font-weight: 800;
+        color: #000;
+        text-align: right;
+    }
+
+    .resumen-cobro-total span {
+        font-size: 1rem;
+        font-weight: 900;
+    }
+
+    .resumen-cobro-total strong {
+        font-size: 1.08rem;
+        font-weight: 900;
+    }
+
+
+    .quick-rental-table thead th {
+        font-size: 12px;
+        color: #64748b;
+        font-weight: 700;
+        border-bottom: 1px solid #e5e7eb;
+        white-space: nowrap;
+    }
+
+    .quick-rental-table tbody td {
+        font-size: 13px;
+        border-bottom: 1px solid #f1f5f9;
+        vertical-align: middle;
+    }
+
+    .quick-rental-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .quick-rental-table .badge {
+        font-size: 12px;
+        padding: 6px 10px;
+        border-radius: 999px;
     }
 
     @media (max-width: 768px) {
@@ -132,6 +190,27 @@
     $horaDevolucionProgramada = $alquiler->hora_devolucion_programada
         ? \Carbon\Carbon::parse($alquiler->hora_devolucion_programada)->format('h:i A')
         : null;
+    
+    $fechaHoraRealReferencia = now();
+
+    $inicioMora = null;
+    $diasMoraSugeridos = 0;
+    $montoMoraSugerido = 0;
+
+    if ($alquiler->fecha_devolucion_programada) {
+        $inicioMora = $alquiler->fecha_devolucion_programada
+            ->copy()
+            ->addDay()
+            ->setTime(9, 0, 0);
+
+        if ($fechaHoraRealReferencia->greaterThanOrEqualTo($inicioMora)) {
+            $segundosRetraso = max(0, $fechaHoraRealReferencia->timestamp - $inicioMora->timestamp);
+            $diasCompletos = intdiv($segundosRetraso, 86400);
+
+            $diasMoraSugeridos = $diasCompletos + 1;
+            $montoMoraSugerido = $diasMoraSugeridos * 50;
+        }
+    }
 @endphp
 
 <div class="container-fluid px-3 px-md-4 py-4">
@@ -245,20 +324,133 @@
             </div>
         </div>
 
-        {{-- TARJETAS PRINCIPALES --}}
+
+        {{-- DETALLES RÁPIDOS DEL ALQUILER --}}
         <div class="col-lg-8">
+            <div class="detalle-card p-4 h-100">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <div class="detalle-icon mb-0" style="width: 44px; height: 44px; font-size: 20px;">
+                        📋
+                    </div>
+                    <div>
+                        <h5 class="mb-0 fw-bold">Detalles rápidos del alquiler</h5>
+                        <small class="text-muted">Resumen para consulta rápida de tallas, birretes, borlas y carrera.</small>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0 quick-rental-table">
+                        <thead>
+                            <tr>
+                                <th>Talla</th>
+                                <th class="text-center">Cantidad</th>
+                                <th>Birrete(s)</th>
+                                <th>Borla(s)</th>
+                                <th>Carrera</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            @forelse($alquiler->detalles as $detalle)
+                                @php
+                                    $producto = $detalle->producto;
+                                    $talla = $producto?->toga?->talla ?? 'N/A';
+
+                                    $accesoriosDetalle = collect($detalle->accesorios ?? []);
+
+                                    $birretes = $accesoriosDetalle->filter(function ($accesorio) {
+                                        return ($accesorio->producto->tipo_producto ?? null) === 'BIRRETE';
+                                    });
+
+                                    $birretesTexto = $birretes->map(function ($accesorio) {
+                                        $productoBirrete = $accesorio->producto;
+                                        $tipo = $productoBirrete?->birrete?->tipo ?? null;
+
+                                        if ($tipo === 'UNIVERSITARIO') {
+                                            return 'Universitario x' . $accesorio->cantidad;
+                                        }
+
+                                        return ($productoBirrete->nombre ?? 'Birrete') . ' x' . $accesorio->cantidad;
+                                    })->implode(', ');
+
+                                    $birreteUniversitario = $birretes->first(function ($accesorio) {
+                                        return ($accesorio->producto->birrete->tipo ?? null) === 'UNIVERSITARIO';
+                                    });
+
+                                    $tieneBirreteUniversitario = $birreteUniversitario !== null;
+
+                                    $carrera = $tieneBirreteUniversitario
+                                        ? ($birreteUniversitario->producto->birrete->carrera ?? null)
+                                        : null;
+
+                                    $borlas = $accesoriosDetalle->filter(function ($accesorio) {
+                                        return ($accesorio->producto->tipo_producto ?? null) === 'BORLA'
+                                            || str_contains(strtoupper($accesorio->producto->nombre ?? ''), 'BORLA');
+                                    });
+
+                                    $borlasTexto = $borlas->map(function ($accesorio) {
+                                        return ($accesorio->producto->nombre ?? 'Borla') . ' x' . $accesorio->cantidad;
+                                    })->implode(', ');
+                                @endphp
+
+                                <tr>
+                                    <td>
+                                        <strong>{{ $talla }}</strong>
+                                    </td>
+
+                                    <td class="text-center">
+                                        <span class="badge bg-light text-dark border">
+                                            {{ $detalle->cantidad }}
+                                        </span>
+                                    </td>
+
+                                    <td>
+                                        {{ $birretesTexto ?: 'Sin birrete' }}
+                                    </td>
+
+                                    <td>
+                                        @if($tieneBirreteUniversitario)
+                                            {{ $borlasTexto ?: 'Incluida / no detallada' }}
+                                        @else
+                                            <span class="text-muted">-</span>
+                                        @endif
+                                    </td>
+
+                                    <td>
+                                        @if($tieneBirreteUniversitario)
+                                            {{ $carrera ?: 'No registrada' }}
+                                        @else
+                                            <span class="text-muted">-</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-3">
+                                        No hay productos registrados en este alquiler.
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        {{-- TARJETAS PRINCIPALES --}}
+        <div class="col-12">
             <div class="row g-4">
 
                 <div class="col-md-4">
                     <div class="detalle-card p-4 h-100">
                         <div class="detalle-icon">🗓️</div>
 
-                        <div class="text-muted small">Fecha de alquiler</div>
+                        <div class="text-muted small">Fecha de reserva</div>
                         <div class="fw-bold fs-4">
                             {{ optional($alquiler->fecha_alquiler)->format('d/m/Y') }}
                         </div>
                         <div class="text-muted small">
-                            Fecha de creación del alquiler
+                            Fecha registrada para la reserva
                         </div>
                     </div>
                 </div>
@@ -364,46 +556,107 @@
                 </div>
 
                 <div class="col-md-4">
-                    <div class="detalle-card p-4 h-100">
+                    <div class="detalle-card p-4 h-100 resumen-cobro-card">
+                        <h5 class="fw-bold mb-3">💵 Resumen de cobro</h5>
 
-                        <h5 class="fw-bold mb-3">
-                            💵 Resumen de cobro
-                        </h5>
+                        <div class="resumen-cobro-linea">
+                            <span>Subtotal togas</span>
+                            <strong>Q {{ number_format((float) $subtotalTogas, 2) }}</strong>
+                        </div>
 
-                        <table class="table resumen-cobro-table mb-0">
-                            <tbody>
-                                <tr>
-                                    <td class="text-muted fw-semibold">Subtotal togas</td>
-                                    <td class="text-end fw-bold">
-                                        Q {{ number_format($subtotalTogas, 2) }}
-                                    </td>
-                                </tr>
+                        <div class="resumen-cobro-linea">
+                            <span>Extras cobrables</span>
+                            <strong>Q {{ number_format((float) $subtotalExtras, 2) }}</strong>
+                        </div>
 
-                                <tr>
-                                    <td class="text-muted fw-semibold">Extras cobrables</td>
-                                    <td class="text-end fw-bold">
-                                        Q {{ number_format($subtotalExtras, 2) }}
-                                    </td>
-                                </tr>
+                        @if(($alquiler->monto_mora ?? 0) > 0)
+                            <div class="resumen-cobro-linea">
+                                <span>Mora por devolución tardía</span>
+                                <strong>Q {{ number_format((float) $alquiler->monto_mora, 2) }}</strong>
+                            </div>
+                        @endif
 
-                                <tr>
-                                    <td class="text-muted fw-semibold">Descuento</td>
-                                    <td class="text-end fw-bold">
-                                        Q {{ number_format($alquiler->descuento, 2) }}
-                                    </td>
-                                </tr>
+                        <div class="resumen-cobro-linea">
+                            <span>Descuento</span>
+                            <strong>Q {{ number_format((float) $alquiler->descuento, 2) }}</strong>
+                        </div>
 
-                                <tr>
-                                    <td class="fw-bold">Total final</td>
-                                    <td class="text-end fw-bold fs-5">
-                                        Q {{ number_format($alquiler->total, 2) }}
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                        @if(($alquiler->descuento_mora ?? 0) > 0)
+                            <div class="resumen-cobro-linea">
+                                <span>Descuento de mora</span>
+                                <strong class="text-success">- Q {{ number_format((float) $alquiler->descuento_mora, 2) }}</strong>
+                            </div>
+                        @endif
 
+                        <div class="resumen-cobro-linea resumen-cobro-total">
+                            <span>Total final</span>
+                            <strong>Q {{ number_format((float) $alquiler->total, 2) }}</strong>
+                        </div>
                     </div>
                 </div>
+
+                @if(($alquiler->dias_mora ?? 0) > 0 || ($alquiler->monto_mora ?? 0) > 0)
+                    <div class="page-card p-4 mt-4">
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <div class="stat-icon">⏰</div>
+                            <div>
+                                <h5 class="fw-bold mb-0">Mora por devolución tardía</h5>
+                                <div class="text-muted small">
+                                    Cargo generado al registrar la devolución del alquiler.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <div class="border rounded-4 p-3 h-100 bg-light">
+                                    <div class="text-muted small">Días de mora</div>
+                                    <div class="fw-bold fs-5">
+                                        {{ (int) ($alquiler->dias_mora ?? 0) }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-3">
+                                <div class="border rounded-4 p-3 h-100 bg-light">
+                                    <div class="text-muted small">Mora calculada</div>
+                                    <div class="fw-bold fs-5">
+                                        Q {{ number_format((float) ($alquiler->monto_mora_calculado ?? 0), 2) }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-3">
+                                <div class="border rounded-4 p-3 h-100 bg-light">
+                                    <div class="text-muted small">Descuento de mora</div>
+                                    <div class="fw-bold fs-5">
+                                        Q {{ number_format((float) ($alquiler->descuento_mora ?? 0), 2) }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-3">
+                                <div class="border rounded-4 p-3 h-100 bg-light">
+                                    <div class="text-muted small">Mora final cargada</div>
+                                    <div class="fw-bold fs-5 text-danger">
+                                        Q {{ number_format((float) ($alquiler->monto_mora ?? 0), 2) }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            @if(!empty($alquiler->observacion_mora))
+                                <div class="col-12">
+                                    <div class="border rounded-4 p-3 bg-light">
+                                        <div class="text-muted small mb-1">Observación de mora</div>
+                                        <div>
+                                            {{ $alquiler->observacion_mora }}
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                @endif
 
             </div>
         </div>
@@ -786,15 +1039,187 @@
                     @endif
 
                     @if($alquiler->estado === 'ENTREGADO')
-                        <form action="{{ route('alquileres.devolver', $alquiler->id) }}" method="POST">
-                            @csrf
-                            <button type="submit" class="btn btn-success rounded-pill">
-                                ↩️ Registrar devolución
-                            </button>
-                        </form>
+                        <div class="w-100 mt-3">
+                            <div class="alert {{ $diasMoraSugeridos > 0 ? 'alert-warning' : 'alert-success' }} rounded-4 text-start">
+                                <div class="fw-bold mb-1">
+                                    ↩️ Revisión de devolución
+                                </div>
+
+                                @if($diasMoraSugeridos > 0)
+                                    <div>
+                                        Este alquiler tiene <strong>{{ (int) $diasMoraSugeridos }}</strong> día(s) de mora por devolución tardía.
+                                    </div>
+                                    <div>
+                                        Mora sugerida: <strong>Q {{ number_format($montoMoraSugerido, 2) }}</strong>
+                                        <span class="text-muted">(Q50.00 por día)</span>
+                                    </div>
+                                    <div class="small text-muted mt-1">
+                                        La mora empieza a contar desde las 9:00 AM del día siguiente a la devolución programada.
+                                    </div>
+                                @else
+                                    <div>
+                                        Este alquiler no tiene mora por devolución tardía.
+                                    </div>
+                                @endif
+                            </div>
+
+                            <form
+                                id="formDevolverAlquiler"
+                                action="{{ route('alquileres.devolver', $alquiler->id) }}"
+                                method="POST"
+                                class="border rounded-4 p-4 text-start bg-light"
+                            >
+                                @csrf
+
+                                <input type="hidden" name="dias_mora_sugeridos" value="{{ (int) $diasMoraSugeridos }}">
+                                <input type="hidden" name="monto_mora_calculado" value="{{ $montoMoraSugerido }}">
+
+                                <div class="row g-3 align-items-start">
+                                    <div class="col-md-3">
+                                        <label class="form-label fw-semibold">Días de mora</label>
+                                        <input
+                                            type="number"
+                                            class="form-control"
+                                            value="{{ (int) $diasMoraSugeridos }}"
+                                            readonly
+                                        >
+                                        <div class="form-text invisible">
+                                            Espacio reservado.
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-3">
+                                        <label class="form-label fw-semibold">Mora calculada</label>
+                                        <input
+                                            type="text"
+                                            class="form-control"
+                                            value="Q {{ number_format($montoMoraSugerido, 2) }}"
+                                            readonly
+                                        >
+                                        <div class="form-text invisible">
+                                            Espacio reservado.
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-3">
+                                        <label class="form-label fw-semibold">Descuento de mora</label>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            max="{{ $montoMoraSugerido }}"
+                                            name="descuento_mora"
+                                            id="descuento_mora"
+                                            class="form-control"
+                                            value="{{ old('descuento_mora', 0) }}"
+                                        >
+                                        <div class="form-text">
+                                            Descuento aplicado solo a la mora.
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-3">
+                                        <label class="form-label fw-semibold">Mora final a cargar</label>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            id="monto_mora"
+                                            class="form-control"
+                                            value="{{ number_format($montoMoraSugerido, 2, '.', '') }}"
+                                            readonly
+                                        >
+                                        <div class="form-text">
+                                            Este monto se agregará al total y saldo pendiente del alquiler.
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12">
+                                        <label class="form-label fw-semibold">Observación de mora</label>
+                                        <textarea
+                                            name="observacion_mora"
+                                            class="form-control"
+                                            rows="2"
+                                            placeholder="Ejemplo: Se aplicó descuento autorizado por administración."
+                                        >{{ old('observacion_mora') }}</textarea>
+                                    </div>
+
+                                    <div class="col-12 d-flex flex-wrap justify-content-center gap-2">
+                                        <button type="submit" class="btn btn-success rounded-pill">
+                                            ↩️ Confirmar devolución
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+
+                        <script>
+                            document.addEventListener('DOMContentLoaded', function () {
+                                const montoCalculado = Number(@json($montoMoraSugerido));
+                                const descuentoInput = document.getElementById('descuento_mora');
+                                const montoMoraInput = document.getElementById('monto_mora');
+                                const formDevolver = document.getElementById('formDevolverAlquiler');
+
+                                function recalcularMora() {
+                                    if (!descuentoInput || !montoMoraInput) {
+                                        return;
+                                    }
+
+                                    let descuento = Number(descuentoInput.value || 0);
+
+                                    if (descuento < 0) {
+                                        descuento = 0;
+                                    }
+
+                                    if (descuento > montoCalculado) {
+                                        descuento = montoCalculado;
+                                        descuentoInput.value = descuento.toFixed(2);
+                                    }
+
+                                    const montoFinal = Math.max(montoCalculado - descuento, 0);
+                                    montoMoraInput.value = montoFinal.toFixed(2);
+                                }
+
+                                if (descuentoInput && montoMoraInput) {
+                                    descuentoInput.addEventListener('input', recalcularMora);
+                                }
+
+                                if (formDevolver) {
+                                    formDevolver.addEventListener('submit', function (event) {
+                                        event.preventDefault();
+
+                                        const descuento = Number(descuentoInput?.value || 0);
+                                        const moraFinal = Number(montoMoraInput?.value || 0);
+
+                                        Swal.fire({
+                                            title: '¿Confirmar devolución?',
+                                            html: `
+                                                <div class="text-start">
+                                                    <p class="mb-2">Se registrará la devolución de este alquiler.</p>
+                                                    <p class="mb-1"><strong>Mora calculada:</strong> Q ${montoCalculado.toFixed(2)}</p>
+                                                    <p class="mb-1"><strong>Descuento de mora:</strong> Q ${descuento.toFixed(2)}</p>
+                                                    <p class="mb-0"><strong>Mora final a cargar:</strong> Q ${moraFinal.toFixed(2)}</p>
+                                                </div>
+                                            `,
+                                            icon: 'question',
+                                            showCancelButton: true,
+                                            confirmButtonText: 'Sí, confirmar devolución',
+                                            cancelButtonText: 'Cancelar',
+                                            confirmButtonColor: '#198754',
+                                            cancelButtonColor: '#6c757d',
+                                            reverseButtons: true
+                                        }).then((result) => {
+                                            if (result.isConfirmed) {
+                                                formDevolver.submit();
+                                            }
+                                        });
+                                    });
+                                }
+                            });
+                        </script>
                     @endif
 
-                    @if(in_array($alquiler->estado, ['RESERVADO', 'ENTREGADO']))
+                    @if($alquiler->estado === 'RESERVADO')
                         <form
                             action="{{ route('alquileres.cancelar', $alquiler->id) }}"
                             method="POST"

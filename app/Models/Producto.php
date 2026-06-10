@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Models\MovimientoInventario;
 
 class Producto extends Model
 {
@@ -59,5 +60,10 @@ class Producto extends Model
     public function borla()
     {
         return $this->hasOne(ProductoBorla::class, 'producto_id');
+    }
+
+    public function movimientos()
+    {
+        return $this->hasMany(MovimientoInventario::class, 'producto_id');
     }
 }

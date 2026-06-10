@@ -723,10 +723,13 @@ class WebController extends Controller
 
         $datos = $request->validate([
             'cliente_id' => ['required', 'exists:clientes,id'],
-            'fecha_entrega' => ['required', 'date'],
+
+            'fecha_alquiler' => ['required', 'string', 'date', 'before_or_equal:fecha_entrega'],
+            'fecha_entrega' => ['required', 'string', 'date', 'after_or_equal:fecha_alquiler'],
             'hora_entrega' => ['nullable', 'date_format:H:i'],
-            'fecha_devolucion_programada' => ['required', 'date', 'after_or_equal:fecha_entrega'],
+            'fecha_devolucion_programada' => ['required', 'string', 'date', 'after_or_equal:fecha_entrega'],
             'hora_devolucion_programada' => ['nullable', 'date_format:H:i'],
+            
             'descuento' => ['nullable', 'numeric', 'min:0'],
             'observaciones' => ['nullable', 'string', 'max:500'],
 
@@ -754,6 +757,18 @@ class WebController extends Controller
             'productos.*.borla_extra_id' => ['nullable', 'exists:productos,id'],
             'productos.*.borla_extra_cantidad' => ['nullable', 'integer', 'min:1'],
         ], [
+            'fecha_alquiler.required' => 'Debes indicar la fecha de reserva.',
+            'fecha_alquiler.date' => 'La fecha de reserva no tiene un formato válido.',
+            'fecha_alquiler.before_or_equal' => 'La fecha de reserva no puede ser posterior a la fecha de entrega.',
+
+            'fecha_entrega.required' => 'Debes indicar la fecha de entrega.',
+            'fecha_entrega.date' => 'La fecha de entrega no tiene un formato válido.',
+            'fecha_entrega.after_or_equal' => 'La fecha de entrega no puede ser anterior a la fecha de reserva.',
+
+            'fecha_devolucion_programada.required' => 'Debes indicar la fecha de devolución programada.',
+            'fecha_devolucion_programada.date' => 'La fecha de devolución programada no tiene un formato válido.',
+            'fecha_devolucion_programada.after_or_equal' => 'La fecha de devolución programada no puede ser anterior a la fecha de entrega.',
+
             'productos.required' => 'Debes seleccionar al menos una toga.',
             'productos.*.collarin_id.required' => 'Cada toga seleccionada debe tener un collarín obligatorio.',
             'productos.*.birrete_extra_cantidad.min' => 'La cantidad de birretes extra debe ser al menos 1.',
@@ -995,28 +1010,33 @@ class WebController extends Controller
 
         try {
             $alquiler = $alquilerService->crearAlquiler(
-                (int) $datos['cliente_id'],
-                $detalles,
-                (float) ($datos['descuento'] ?? 0),
-                $datos['fecha_entrega'],
-                $datos['fecha_devolucion_programada'],
-                $datos['observaciones'] ?? null,
-                null
+                clienteId: (int) $datos['cliente_id'],
+                productos: $detalles,
+                descuento: (float) ($datos['descuento'] ?? 0),
+                fechaAlquiler: $datos['fecha_alquiler'],
+                fechaEntrega: $datos['fecha_entrega'],
+                fechaDevolucionProgramada: $datos['fecha_devolucion_programada'],
+                observaciones: $datos['observaciones'] ?? null,
+                usuarioId: null
             );
 
             $alquiler->update([
-                'institucion_representada' => $request->institucion_representada,
-                'representante_alquiler' => $request->representante_alquiler,
+                // Fecha real de reserva seleccionada en el formulario.
+                // Se usa el campo fecha_alquiler existente en la tabla alquileres.
+                'fecha_alquiler' => $datos['fecha_alquiler'],
+
+                'institucion_representada' => $datos['institucion_representada'] ?? null,
+                'representante_alquiler' => $datos['representante_alquiler'] ?? null,
 
                 // Horario exacto del alquiler
-                'hora_entrega' => $request->hora_entrega,
-                'hora_devolucion_programada' => $request->hora_devolucion_programada,
+                'hora_entrega' => $datos['hora_entrega'] ?? null,
+                'hora_devolucion_programada' => $datos['hora_devolucion_programada'] ?? null,
 
                 // Rango de horario mostrado en carta/entrega
-                'hora_entrega_inicio' => $request->hora_entrega_inicio,
-                'hora_entrega_fin' => $request->hora_entrega_fin,
+                'hora_entrega_inicio' => $datos['hora_entrega_inicio'] ?? null,
+                'hora_entrega_fin' => $datos['hora_entrega_fin'] ?? null,
 
-                'fecha_limite_pago_final' => $request->fecha_limite_pago_final,
+                'fecha_limite_pago_final' => $datos['fecha_limite_pago_final'] ?? null,
             ]);
 
             return redirect()
@@ -1094,24 +1114,31 @@ class WebController extends Controller
     }
 
 
-    public function devolverAlquilerWeb($id, AlquilerService $alquilerService)
+    public function devolverAlquilerWeb(Request $request, $id, AlquilerService $alquilerService)
     {
-        try {
-        $alquilerService->devolverAlquiler(
-            (int) $id,
-            null
-        );
+        $request->validate([
+            'descuento_mora' => ['nullable', 'numeric', 'min:0'],
+            'observacion_mora' => ['nullable', 'string', 'max:1000'],
+        ]);
 
-        return redirect()
-            ->route('alquileres.web')
-            ->with('success', 'Alquiler devuelto correctamente.');
+        try {
+            $alquilerService->devolverAlquiler(
+                (int) $id,
+                (float) $request->input('descuento_mora', 0),
+                $request->input('observacion_mora'),
+                null
+            );
+
+            return redirect()
+                ->back()
+                ->with('success', 'Alquiler devuelto correctamente.');
         } catch (\Exception $e) {
-        return redirect()
-            ->route('alquileres.web')
-            ->with('error', $e->getMessage());
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with('error', $e->getMessage());
         }
     }
-
     public function cancelarAlquilerWeb($id)
     {
         $alquiler = Alquiler::with(['pagos', 'detalles'])->findOrFail($id);

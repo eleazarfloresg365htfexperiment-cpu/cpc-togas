@@ -30,6 +30,13 @@ class Alquiler extends Model
         'fecha_devolucion_real',
         'hora_devolucion_programada',
 
+        'fecha_hora_devolucion_real',
+        'dias_mora',
+        'monto_mora_calculado',
+        'descuento_mora',
+        'monto_mora',
+        'observacion_mora',
+
         'estado',
         'estado_pago',
 
@@ -48,14 +55,20 @@ class Alquiler extends Model
         'fecha_entrega' => 'date',
         'fecha_devolucion_programada' => 'date',
         'fecha_devolucion_real' => 'date',
+        'fecha_hora_devolucion_real' => 'datetime',
         'fecha_limite_pago_final' => 'date',
 
         'hora_entrega_inicio' => 'datetime:H:i',
         'hora_entrega_fin' => 'datetime:H:i',
 
+        'dias_mora' => 'integer',
+
         'subtotal' => 'decimal:2',
         'descuento' => 'decimal:2',
         'total' => 'decimal:2',
+        'monto_mora_calculado' => 'decimal:2',
+        'descuento_mora' => 'decimal:2',
+        'monto_mora' => 'decimal:2',
         'saldo_pendiente' => 'decimal:2',
     ];
 

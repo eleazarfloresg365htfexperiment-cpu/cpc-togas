@@ -175,7 +175,7 @@
         }
 
         .totals {
-            width: 330px;
+            width: 360px;
             margin-left: auto;
             margin-top: 14px;
         }
@@ -183,8 +183,18 @@
         .totals-row {
             display: flex;
             justify-content: space-between;
+            gap: 16px;
             border-bottom: 1px solid #e5e7eb;
             padding: 7px 0;
+        }
+
+        .totals-row span:first-child {
+            color: #374151;
+        }
+
+        .totals-row span:last-child {
+            white-space: nowrap;
+            text-align: right;
         }
 
         .totals-row.total {
@@ -195,6 +205,56 @@
 
         .totals-row.balance {
             font-weight: bold;
+        }
+
+        .mora-box {
+            border: 1px solid #fecaca;
+            background: #fff7f7;
+            padding: 12px;
+            margin-top: 10px;
+        }
+
+        .mora-box .mora-note {
+            color: #6b7280;
+            font-size: 12px;
+            margin-top: 8px;
+            line-height: 1.4;
+        }
+
+        .mora-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px 18px;
+        }
+
+        .mora-item strong {
+            display: block;
+            color: #6b7280;
+            font-size: 12px;
+            margin-bottom: 2px;
+        }
+
+        .mora-item span {
+            color: #111827;
+            font-weight: bold;
+        }
+
+
+
+        .quick-details-table th {
+            font-size: 11px;
+            padding: 7px 8px;
+            white-space: nowrap;
+        }
+
+        .quick-details-table td {
+            font-size: 12px;
+            padding: 7px 8px;
+            vertical-align: middle;
+        }
+
+        .quick-details-table .muted {
+            color: #6b7280;
         }
 
         .observations {
@@ -307,9 +367,13 @@
             ? \Carbon\Carbon::parse($alquiler->hora_devolucion_programada)->format('h:i A')
             : null;
 
-        $fechaDevolucionReal = $alquiler->fecha_devolucion_real
-            ? \Carbon\Carbon::parse($alquiler->fecha_devolucion_real)->format('d/m/Y')
-            : 'Pendiente';
+        $fechaDevolucionReal = $alquiler->fecha_hora_devolucion_real
+            ? \Carbon\Carbon::parse($alquiler->fecha_hora_devolucion_real)->format('d/m/Y h:i A')
+            : (
+                $alquiler->fecha_devolucion_real
+                    ? \Carbon\Carbon::parse($alquiler->fecha_devolucion_real)->format('d/m/Y')
+                    : 'Pendiente'
+            );
 
         $fechaLimitePagoFinal = $alquiler->fecha_limite_pago_final
             ? \Carbon\Carbon::parse($alquiler->fecha_limite_pago_final)->format('d/m/Y')
@@ -322,6 +386,18 @@
         $horaEntregaFin = $alquiler->hora_entrega_fin
             ? \Carbon\Carbon::parse($alquiler->hora_entrega_fin)->format('h:i A')
             : null;
+
+        $diasMora = (int) ($alquiler->dias_mora ?? 0);
+        $montoMoraCalculado = (float) ($alquiler->monto_mora_calculado ?? 0);
+        $descuentoMora = (float) ($alquiler->descuento_mora ?? 0);
+        $montoMora = (float) ($alquiler->monto_mora ?? 0);
+        $observacionMora = trim((string) ($alquiler->observacion_mora ?? ''));
+
+        $hayMoraRegistrada = $diasMora > 0
+            || $montoMoraCalculado > 0
+            || $descuentoMora > 0
+            || $montoMora > 0
+            || $observacionMora !== '';
     @endphp
 
     <div class="actions">
@@ -404,9 +480,7 @@
             <div class="grid">
                 <div class="field">
                     <strong>Nombre completo</strong>
-                    <span>
-                        {{ $clienteNombre ?: 'Sin cliente' }}
-                    </span>
+                    <span>{{ $clienteNombre ?: 'Sin cliente' }}</span>
                 </div>
 
                 <div class="field">
@@ -441,7 +515,7 @@
 
             <div class="grid">
                 <div class="field">
-                    <strong>Fecha de alquiler</strong>
+                    <strong>Fecha de reserva</strong>
                     <span>{{ $fechaAlquiler }}</span>
                 </div>
 
@@ -495,19 +569,92 @@
         </div>
 
         <div class="section">
+            <div class="section-title">Detalles rápidos del alquiler</div>
+
+            <table class="quick-details-table">
+                <thead>
+                    <tr>
+                        <th>Talla</th>
+                        <th class="text-right">Cantidad</th>
+                        <th>Birrete(s)</th>
+                        <th>Borla(s)</th>
+                        <th>Carrera</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @foreach ($alquiler->detalles as $detalle)
+                        @php
+                            $productoDetalle = $detalle->producto;
+                            $tallaDetalle = $productoDetalle?->toga?->talla ?? 'N/A';
+
+                            $accesoriosDetalle = collect($detalle->accesorios ?? []);
+
+                            $birretesDetalle = $accesoriosDetalle->filter(function ($accesorio) {
+                                return ($accesorio->producto->tipo_producto ?? null) === 'BIRRETE';
+                            });
+
+                            $birretesTexto = $birretesDetalle->map(function ($accesorio) {
+                                $productoAccesorio = $accesorio->producto;
+                                $tipoBirrete = $productoAccesorio?->birrete?->tipo ?? null;
+
+                                if ($tipoBirrete === 'UNIVERSITARIO') {
+                                    return 'Universitario x' . $accesorio->cantidad;
+                                }
+
+                                return ($productoAccesorio->nombre ?? 'Birrete') . ' x' . $accesorio->cantidad;
+                            })->implode(', ');
+
+                            $birreteUniversitario = $birretesDetalle->first(function ($accesorio) {
+                                return ($accesorio->producto->birrete->tipo ?? null) === 'UNIVERSITARIO';
+                            });
+
+                            $tieneBirreteUniversitario = $birreteUniversitario !== null;
+
+                            $carreraBirrete = $tieneBirreteUniversitario
+                                ? ($birreteUniversitario->producto->birrete->carrera ?? null)
+                                : null;
+
+                            $borlasDetalle = $accesoriosDetalle->filter(function ($accesorio) {
+                                return ($accesorio->producto->tipo_producto ?? null) === 'BORLA'
+                                    || str_contains(strtoupper($accesorio->producto->nombre ?? ''), 'BORLA');
+                            });
+
+                            $borlasTexto = $borlasDetalle->map(function ($accesorio) {
+                                return ($accesorio->producto->nombre ?? 'Borla') . ' x' . $accesorio->cantidad;
+                            })->implode(', ');
+                        @endphp
+
+                        <tr>
+                            <td><strong>{{ $tallaDetalle }}</strong></td>
+                            <td class="text-right">{{ $detalle->cantidad }}</td>
+                            <td>{{ $birretesTexto ?: 'Sin birrete' }}</td>
+
+                            <td>
+                                @if ($tieneBirreteUniversitario)
+                                    {{ $borlasTexto ?: 'Incluida / no detallada' }}
+                                @else
+                                    <span class="muted">-</span>
+                                @endif
+                            </td>
+
+                            <td>
+                                @if ($tieneBirreteUniversitario)
+                                    {{ $carreraBirrete ?: 'No registrada' }}
+                                @else
+                                    <span class="muted">-</span>
+                                @endif
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section">
             <div class="section-title">Productos alquilados</div>
 
             @php
-                /*
-                |--------------------------------------------------------------------------
-                | Resumen de importes
-                |--------------------------------------------------------------------------
-                | $alquiler->subtotal debe representar el monto ANTES de descuento:
-                | productos principales + extras cobrables.
-                |
-                | $alquiler->total debe representar el monto DESPUÉS de descuento.
-                */
-
                 $subtotalTogas = $alquiler->detalles->sum(function ($detalle) {
                     return (float) (
                         $detalle->total_linea
@@ -524,7 +671,7 @@
 
                 $subtotalAntesDescuento = (float) ($alquiler->subtotal ?? ($subtotalTogas + $subtotalExtras));
                 $descuentoAplicado = (float) ($alquiler->descuento ?? 0);
-                $totalFinal = (float) ($alquiler->total ?? max($subtotalAntesDescuento - $descuentoAplicado, 0));
+                $totalFinal = (float) ($alquiler->total ?? max($subtotalAntesDescuento - $descuentoAplicado + $montoMora, 0));
                 $saldoPendiente = (float) ($alquiler->saldo_pendiente ?? 0);
             @endphp
 
@@ -614,6 +761,13 @@
                     <span>- Q{{ number_format($descuentoAplicado, 2) }}</span>
                 </div>
 
+                @if ($hayMoraRegistrada)
+                    <div class="totals-row">
+                        <span>Mora final cargada</span>
+                        <span>Q{{ number_format($montoMora, 2) }}</span>
+                    </div>
+                @endif
+
                 <div class="totals-row total">
                     <span>Total final</span>
                     <span>Q{{ number_format($totalFinal, 2) }}</span>
@@ -630,6 +784,48 @@
                 </div>
             </div>
         </div>
+
+        @if ($hayMoraRegistrada)
+            <div class="section">
+                <div class="section-title">Mora por devolución tardía</div>
+
+                <div class="mora-box">
+                    <div class="mora-grid">
+                        <div class="mora-item">
+                            <strong>Días de mora</strong>
+                            <span>{{ $diasMora }} {{ $diasMora === 1 ? 'día' : 'días' }}</span>
+                        </div>
+
+                        <div class="mora-item">
+                            <strong>Mora calculada</strong>
+                            <span>Q{{ number_format($montoMoraCalculado, 2) }}</span>
+                        </div>
+
+                        <div class="mora-item">
+                            <strong>Descuento de mora</strong>
+                            <span>Q{{ number_format($descuentoMora, 2) }}</span>
+                        </div>
+
+                        <div class="mora-item">
+                            <strong>Mora final cargada</strong>
+                            <span>Q{{ number_format($montoMora, 2) }}</span>
+                        </div>
+                    </div>
+
+                    @if ($observacionMora !== '')
+                        <div class="mora-note">
+                            <strong>Observación de mora:</strong>
+                            {{ $observacionMora }}
+                        </div>
+                    @endif
+
+                    <div class="mora-note">
+                        La mora final cargada ya fue agregada al total del alquiler y al saldo pendiente.
+                        Este cargo no representa un pago realizado; debe cancelarse desde el módulo normal de pagos.
+                    </div>
+                </div>
+            </div>
+        @endif
 
         <div class="section">
             <div class="section-title">Pagos registrados</div>

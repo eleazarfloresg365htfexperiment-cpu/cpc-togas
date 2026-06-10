@@ -192,7 +192,7 @@
 
                             <td>
                                 <div>
-                                    <strong>Alquiler:</strong>
+                                    <strong>Reserva:</strong>
                                     {{ optional($alquiler->fecha_alquiler)->format('d/m/Y') ?? $alquiler->fecha_alquiler }}
                                 </div>
 
