@@ -14,14 +14,17 @@ class Pago extends Model
     protected $fillable = [
         'alquiler_id',
         'monto',
+        'descuento_aplicado',
         'metodo_pago',
         'referencia',
         'observaciones',
+        'observacion_descuento',
         'usuario_id',
     ];
 
     protected $casts = [
         'monto' => 'decimal:2',
+        'descuento_aplicado' => 'decimal:2',
     ];
 
     public function alquiler()

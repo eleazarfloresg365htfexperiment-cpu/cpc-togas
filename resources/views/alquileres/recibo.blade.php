@@ -671,6 +671,9 @@
 
                 $subtotalAntesDescuento = (float) ($alquiler->subtotal ?? ($subtotalTogas + $subtotalExtras));
                 $descuentoAplicado = (float) ($alquiler->descuento ?? 0);
+                $descuentoAplicadoEnPagos = $alquiler->pagos->sum(function ($pago) {
+                    return (float) ($pago->descuento_aplicado ?? 0);
+                });
                 $totalFinal = (float) ($alquiler->total ?? max($subtotalAntesDescuento - $descuentoAplicado + $montoMora, 0));
                 $saldoPendiente = (float) ($alquiler->saldo_pendiente ?? 0);
             @endphp
@@ -761,6 +764,13 @@
                     <span>- Q{{ number_format($descuentoAplicado, 2) }}</span>
                 </div>
 
+                @if ($descuentoAplicadoEnPagos > 0)
+                    <div class="totals-row">
+                        <span>Incluye descuento aplicado en pagos</span>
+                        <span>Q{{ number_format($descuentoAplicadoEnPagos, 2) }}</span>
+                    </div>
+                @endif
+
                 @if ($hayMoraRegistrada)
                     <div class="totals-row">
                         <span>Mora final cargada</span>
@@ -837,21 +847,45 @@
                             <th>Fecha</th>
                             <th>Método</th>
                             <th>Referencia</th>
-                            <th class="text-right">Monto</th>
+                            <th class="text-right">Pago recibido</th>
+                            <th class="text-right">Descuento aplicado</th>
+                            <th class="text-right">Total aplicado</th>
                         </tr>
                     </thead>
 
                     <tbody>
                         @foreach ($alquiler->pagos as $pago)
+                            @php
+                                $descuentoPago = (float) ($pago->descuento_aplicado ?? 0);
+                                $totalAplicadoPago = (float) $pago->monto + $descuentoPago;
+                                $observacionDescuentoPago = trim((string) ($pago->observacion_descuento ?? ''));
+                            @endphp
+
                             <tr>
                                 <td>{{ $pago->created_at ? $pago->created_at->format('d/m/Y H:i') : 'N/A' }}</td>
                                 <td>{{ $pago->metodo_pago }}</td>
                                 <td>{{ $pago->referencia ?? 'N/A' }}</td>
                                 <td class="text-right">Q{{ number_format($pago->monto, 2) }}</td>
+                                <td class="text-right">Q{{ number_format($descuentoPago, 2) }}</td>
+                                <td class="text-right">Q{{ number_format($totalAplicadoPago, 2) }}</td>
                             </tr>
+
+                            @if ($descuentoPago > 0 && $observacionDescuentoPago !== '')
+                                <tr>
+                                    <td colspan="6" style="background: #f9fafb; color: #4b5563; font-size: 12px;">
+                                        <strong>Observación del descuento:</strong>
+                                        {{ $observacionDescuentoPago }}
+                                    </td>
+                                </tr>
+                            @endif
                         @endforeach
                     </tbody>
                 </table>
+
+                <p style="font-size: 12px; color: #6b7280; margin-top: 8px;">
+                    El pago recibido representa dinero ingresado. El descuento aplicado representa una rebaja autorizada.
+                    El total aplicado es la suma que reduce el saldo pendiente.
+                </p>
             @else
                 <p>No hay pagos registrados para este alquiler.</p>
             @endif

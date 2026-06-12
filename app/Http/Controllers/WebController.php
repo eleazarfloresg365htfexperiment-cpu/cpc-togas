@@ -1193,12 +1193,14 @@ class WebController extends Controller
         $alquiler = Alquiler::findOrFail($id);
 
         $datos = $request->validate([
-            'monto' => ['required', 'numeric', 'min:0.01', 'max:' . $alquiler->saldo_pendiente],
+            'monto' => ['required', 'numeric', 'min:0', 'max:' . $alquiler->saldo_pendiente],
+            'descuento_aplicado' => ['nullable', 'numeric', 'min:0'],
+            'observacion_descuento' => ['nullable', 'string', 'max:1000'],
+
             'metodo_pago' => ['required', 'in:EFECTIVO,TRANSFERENCIA,TARJETA,OTRO'],
             'referencia' => ['nullable', 'string', 'max:100'],
             'observaciones' => ['nullable', 'string', 'max:500'],
 
-            // Aceptamos varios nombres por si la vista lo manda diferente.
             'fecha_limite_pago_final' => ['nullable', 'date'],
             'fecha_limite_pago' => ['nullable', 'date'],
             'fecha_pago_final' => ['nullable', 'date'],
@@ -1206,21 +1208,47 @@ class WebController extends Controller
         ]);
 
         try {
+            $monto = (float) ($datos['monto'] ?? 0);
+            $descuentoAplicado = (float) ($datos['descuento_aplicado'] ?? 0);
+
+            if (($monto + $descuentoAplicado) <= 0) {
+                return redirect()
+                    ->route('pagos.create', $alquiler->id)
+                    ->withInput()
+                    ->withErrors([
+                        'monto' => 'Debe ingresar un pago o un descuento mayor a cero.',
+                    ]);
+            }
+
+            if (($monto + $descuentoAplicado) > (float) $alquiler->saldo_pendiente) {
+                return redirect()
+                    ->route('pagos.create', $alquiler->id)
+                    ->withInput()
+                    ->withErrors([
+                        'monto' => 'La suma del pago y el descuento no puede ser mayor al saldo pendiente.',
+                    ]);
+            }
+
+            if ($descuentoAplicado > 0 && empty($datos['observacion_descuento'])) {
+                return redirect()
+                    ->route('pagos.create', $alquiler->id)
+                    ->withInput()
+                    ->withErrors([
+                        'observacion_descuento' => 'Debe ingresar una observación para justificar el descuento aplicado.',
+                    ]);
+            }
+
             $pagoService->registrarPago(
-                (int) $alquiler->id,
-                (float) $datos['monto'],
-                $datos['metodo_pago'],
-                $datos['referencia'] ?? null,
-                $datos['observaciones'] ?? null,
-                null
+                alquilerId: (int) $alquiler->id,
+                monto: $monto,
+                metodoPago: $datos['metodo_pago'],
+                referencia: $datos['referencia'] ?? null,
+                observaciones: $datos['observaciones'] ?? null,
+                usuarioId: auth()->id(),
+                descuentoAplicado: $descuentoAplicado,
+                observacionDescuento: $datos['observacion_descuento'] ?? null
             );
 
-            /*
-            |--------------------------------------------------------------------------
-            | Guardar fecha límite de pago final
-            |--------------------------------------------------------------------------
-            | Usamos DB::table para evitar cualquier problema con $fillable del modelo.
-            */
             $fechaLimitePagoFinal =
                 $request->input('fecha_limite_pago_final')
                 ?? $request->input('fecha_limite_pago')
@@ -1238,12 +1266,12 @@ class WebController extends Controller
 
             return redirect()
                 ->route('alquileres.show', $alquiler->id)
-                ->with('success', 'Pago registrado correctamente.');
+                ->with('success', 'Pago o descuento registrado correctamente.');
         } catch (\Exception $e) {
             return redirect()
                 ->route('pagos.create', $alquiler->id)
-                ->with('error', $e->getMessage())
-                ->withInput();
+                ->withInput()
+                ->with('error', $e->getMessage());
         }
     }
 

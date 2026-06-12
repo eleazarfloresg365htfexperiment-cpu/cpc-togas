@@ -437,6 +437,15 @@
                         🧾 Alquileres
                     </a>
 
+                    <a class="nav-link {{ request()->routeIs('control-alquileres.*') ? 'active' : '' }}" href="{{ route('control-alquileres.index') }}">
+                        📦 Control de alquileres
+                    </a>
+
+                    <a href="{{ route('estadisticas.index') }}"
+                    class="nav-link {{ request()->routeIs('estadisticas.*') ? 'active' : '' }}">
+                        📊 Estadísticas
+                    </a>
+
                     <a href="{{ route('calendario.index') }}"
                     class="nav-link {{ request()->routeIs('calendario.*') ? 'active' : '' }}">
                         📅 Calendario

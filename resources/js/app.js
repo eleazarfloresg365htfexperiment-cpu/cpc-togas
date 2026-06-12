@@ -1,6 +1,6 @@
 import { Calendar } from '@fullcalendar/core';
 import dayGridPlugin from '@fullcalendar/daygrid';
-import timeGridPlugin from '@fullcalendar/timegrid';
+import listPlugin from '@fullcalendar/list';
 import interactionPlugin from '@fullcalendar/interaction';
 import esLocale from '@fullcalendar/core/locales/es';
 
@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const eventosUrl = calendarEl.dataset.eventosUrl;
 
     const calendar = new Calendar(calendarEl, {
-        plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
+        plugins: [dayGridPlugin, listPlugin, interactionPlugin],
         locale: esLocale,
         initialView: 'dayGridMonth',
         height: 'auto',
@@ -23,29 +23,61 @@ document.addEventListener('DOMContentLoaded', function () {
         headerToolbar: {
             left: 'prev,next today',
             center: 'title',
-            right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            right: 'dayGridMonth,dayGridWeek,listDay'
         },
 
         buttonText: {
             today: 'Mes actual',
             month: 'Mes',
             week: 'Semana',
-            day: 'Día'
+            list: 'Día'
         },
 
-        displayEventTime: true,
+        views: {
+            listDay: {
+                buttonText: 'Día',
+                noEventsText: 'No hay actividades programadas para este día.'
+            }
+        },
+
+        displayEventTime: false,
         eventDisplay: 'block',
-        nowIndicator: true,
-        slotMinTime: '06:00:00',
-        slotMaxTime: '20:00:00',
-        slotDuration: '00:30:00',
-        eventTimeFormat: {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true
-        },
+        nowIndicator: false,
+        lazyFetching: false,
 
-        events: eventosUrl,
+        events: function (fetchInfo, successCallback, failureCallback) {
+            const url = new URL(eventosUrl, window.location.origin);
+
+            const startDate = new Date(fetchInfo.startStr);
+            const endDate = new Date(fetchInfo.endStr);
+            const diferenciaDias = Math.round((endDate - startDate) / (1000 * 60 * 60 * 24));
+
+            const vista = diferenciaDias <= 1 ? 'listDay' : 'dayGridMonth';
+
+            url.searchParams.set('start', fetchInfo.startStr);
+            url.searchParams.set('end', fetchInfo.endStr);
+            url.searchParams.set('vista', vista);
+
+            console.log('Vista enviada al backend:', vista);
+            console.log('URL enviada al backend:', url.toString());
+
+            fetch(url.toString(), {
+                headers: {
+                    'Accept': 'application/json'
+                }
+            })
+                .then(function (response) {
+                    return response.json();
+                })
+                .then(function (data) {
+                    console.log('Eventos recibidos:', data);
+                    successCallback(data);
+                })
+                .catch(function (error) {
+                    console.error('Error cargando eventos:', error);
+                    failureCallback(error);
+                });
+        },
 
         eventClick: function (info) {
             info.jsEvent.preventDefault();
@@ -59,6 +91,10 @@ document.addEventListener('DOMContentLoaded', function () {
             const props = info.event.extendedProps;
 
             let tooltip = '';
+
+            if (props.tipo_evento_texto) {
+                tooltip += `Tipo: ${props.tipo_evento_texto}\n`;
+            }
 
             tooltip += `Recibo: ${props.codigo_recibo ?? 'N/A'}\n`;
             tooltip += `Cliente: ${props.cliente ?? 'N/A'}\n`;
@@ -83,6 +119,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
 
                 tooltip += `\n`;
+            }
+
+            if (props.fecha_limite_pago_final) {
+                tooltip += `Límite de pago: ${props.fecha_limite_pago_final}\n`;
             }
 
             if (props.saldo_pendiente !== null && props.saldo_pendiente !== undefined) {

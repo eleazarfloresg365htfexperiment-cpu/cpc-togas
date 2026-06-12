@@ -4,6 +4,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\WebController;
 use App\Http\Controllers\ExportacionController;
 use App\Http\Controllers\CalendarioController;
+use App\Http\Controllers\ControlAlquilerController;
+use App\Http\Controllers\EstadisticasController;
 
 Route::get('/', function () {
     return redirect('/dashboard');
@@ -89,6 +91,16 @@ Route::get('/alquileres-web/{id}/recibo', [WebController::class, 'reciboAlquiler
 Route::get('/alquileres-web/{id}/terminos', [WebController::class, 'terminosAlquilerWeb'])
     ->name('alquileres.terminos');
 
+ //- - - - CONTROL DE ALQUILERES - - - -
+
+Route::get('/control-alquileres', [ControlAlquilerController::class, 'index'])
+    ->name('control-alquileres.index');
+
+ //- - - - ESTADÍSTICAS DE ALQUILERES - - - -
+
+Route::get('/estadisticas', [EstadisticasController::class, 'index'])
+    ->name('estadisticas.index');
+
  //- - - - EXPORTACIONES - - - -
 
 Route::get('/exportaciones/alquileres/excel', [ExportacionController::class, 'alquileresExcel'])
@@ -99,6 +111,10 @@ Route::get('/exportaciones/alquileres/pdf', [ExportacionController::class, 'alqu
     ->name('exportaciones.alquileres.pdf');
 Route::get('/exportaciones/movimientos/pdf', [ExportacionController::class, 'movimientosPdf'])
     ->name('exportaciones.movimientos.pdf');
+Route::get('/estadisticas/exportar/xlsx', [EstadisticasController::class, 'exportarXlsx'])
+    ->name('estadisticas.exportar.xlsx');
+Route::post('/estadisticas/exportar/pdf', [EstadisticasController::class, 'exportarPdf'])
+    ->name('estadisticas.exportar.pdf');
 
  //- - - - CALENDARIO - - - -
 
