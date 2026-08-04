@@ -54,6 +54,10 @@
                 <option value="TOGA" {{ request('tipo') === 'TOGA' ? 'selected' : '' }}>👗 Togas</option>
                 <option value="BIRRETE" {{ request('tipo') === 'BIRRETE' ? 'selected' : '' }}>🎓 Birretes</option>
                 <option value="COLLARIN" {{ request('tipo') === 'COLLARIN' ? 'selected' : '' }}>🏅 Collarines</option>
+                <option value="BORLA" {{ request('tipo') === 'BORLA' ? 'selected' : '' }}>🎗️ Borlas</option>
+                <option value="CAPA" {{ request('tipo') === 'CAPA' ? 'selected' : '' }}>🧥 Capas</option>
+                    
+                
             </select>
         </div>
 
@@ -107,12 +111,21 @@
                             </td>
 
                             <td>
-                                @if($producto->tipo_producto === 'TOGA')
+                               @if($producto->tipo_producto === 'TOGA')
                                     <span class="badge-soft badge-toga">TOGA</span>
+
                                 @elseif($producto->tipo_producto === 'BIRRETE')
                                     <span class="badge-soft badge-birrete">BIRRETE</span>
+
                                 @elseif($producto->tipo_producto === 'COLLARIN')
                                     <span class="badge-soft badge-collarin">COLLARÍN</span>
+
+                                @elseif($producto->tipo_producto === 'BORLA')
+                                    <span class="badge-soft badge-borla">BORLA</span>
+
+                                @elseif($producto->tipo_producto === 'CAPA')
+                                    <span class="badge-soft badge-capa">CAPA</span>
+
                                 @else
                                     <span class="badge bg-secondary">{{ $producto->tipo_producto }}</span>
                                 @endif

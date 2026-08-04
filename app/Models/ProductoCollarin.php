@@ -14,6 +14,7 @@ class ProductoCollarin extends Model
     protected $fillable = [
         'producto_id',
         'tipo_collarin',
+        'codigo_color',
         'color',
         'tamano',
     ];

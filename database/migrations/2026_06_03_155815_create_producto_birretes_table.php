@@ -26,13 +26,6 @@ return new class extends Migration
 
             $table->string('color', 50)->nullable();
 
-            $table->enum('carrera', [
-                'ADMINISTRACION',
-                'AGRONOMIA',
-                'DERECHO',
-                'PEDAGOGIA',
-            ])->nullable();
-
             $table->boolean('tiene_borlas_extra')->default(false);
             $table->text('descripcion_borlas_extra')->nullable();
 

@@ -37,6 +37,11 @@ class Producto extends Model
         return $this->hasOne(ProductoToga::class, 'producto_id');
     }
 
+    public function capa()
+    {
+        return $this->hasOne(ProductoCapa::class, 'producto_id');
+    }
+
     public function birrete()
     {
         return $this->hasOne(ProductoBirrete::class, 'producto_id');

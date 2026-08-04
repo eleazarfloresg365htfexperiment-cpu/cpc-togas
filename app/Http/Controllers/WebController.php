@@ -10,6 +10,7 @@ use App\Models\Pago;
 use App\Services\PagoService;
 use App\Models\Producto;
 use App\Models\ProductoToga;
+use App\Models\ProductoCapa;
 use App\Models\ProductoBirrete;
 use App\Models\ProductoCollarin;
 use App\Models\ProductoBorla;
@@ -135,7 +136,7 @@ class WebController extends Controller
         $request->validate([
             'codigo' => 'required|string|max:100|unique:productos,codigo',
             'nombre' => 'required|string|max:255',
-            'tipo_producto' => 'required|in:TOGA,BIRRETE,COLLARIN,BORLA',
+            'tipo_producto' => 'required|in:TOGA,BIRRETE,COLLARIN,BORLA,CAPA',
             'descripcion' => 'nullable|string',
             'precio_alquiler' => 'required|numeric|min:0',
             'stock_total' => 'required|integer|min:0',
@@ -147,14 +148,101 @@ class WebController extends Controller
 
             'tipo_birrete' => 'nullable|in:ESTANDAR,NORMAL,UNIVERSITARIO',
             'color_birrete' => 'nullable|string|max:100',
-            'carrera_birrete' => 'nullable|in:ADMINISTRACION,AGRONOMIA,DERECHO,PEDAGOGIA',
+            'observaciones_birrete' => 'nullable|string',
 
-            'color_collarin' => 'nullable|string|max:100',
+            'tipo_collarin' => 'nullable|in:NORMAL,UNIVERSITARIO',
+            'codigo_color_collarin' => 'nullable|string|max:50',
+            'color_collarin' => 'nullable|string|max:50',
+            'tamano_collarin' => 'nullable|in:PEQUENO,GRANDE',
 
+            'borla_codigo_color' => 'nullable|string|max:50',
             'borla_color' => 'nullable|string|max:100',
-            'borla_carrera' => 'nullable|string|max:100',
             'borla_observaciones' => 'nullable|string',
+
+            'codigo_color_capa' => 'nullable|string|max:50',
+            'carrera_capa' => 'nullable|in:ADMINISTRACION,AGRONOMIA,DERECHO,PEDAGOGIA,MEDICINA,CIENCIAS_ECONOMICAS',
+            'color_capa' => 'nullable|string|max:100',
+            'talla_capa' => 'nullable|string|max:50',
+            'observaciones_capa' => 'nullable|string',
         ]);
+
+        if ($request->tipo_producto === 'COLLARIN') {
+
+            if (!$request->filled('tipo_collarin')) {
+
+                return back()
+                    ->withErrors([
+                        'tipo_collarin' => 'Debe seleccionar el tipo de collarín.'
+                    ])
+                    ->withInput();
+
+            }
+
+            if (
+                $request->tipo_collarin === 'NORMAL' &&
+                (
+                    !$request->filled('codigo_color_collarin') ||
+                    !$request->filled('color_collarin')
+                )
+            ) {
+
+                return back()
+                    ->withErrors([
+                        'color_collarin' => 'Debe indicar el código y el color del collarín.'
+                    ])
+                    ->withInput();
+
+            }
+
+            if (
+                $request->tipo_collarin === 'UNIVERSITARIO'
+                && !$request->filled('tamano_collarin')
+            ) {
+
+                return back()
+                    ->withErrors([
+                        'tamano_collarin' => 'Debe seleccionar el tamaño del collarín.'
+                    ])
+                    ->withInput();
+
+            }
+
+        }
+
+        if ($request->tipo_producto === 'CAPA') {
+
+            if (
+                !$request->filled('codigo_color_capa') ||
+                !$request->filled('color_capa') ||
+                !$request->filled('carrera_capa')
+            ) {
+
+                return back()
+                    ->withErrors([
+                        'carrera_capa' =>
+                            'Debe indicar la carrera, el código y el color de la capa.'
+                    ])
+                    ->withInput();
+            }
+
+        }
+
+        if ($request->tipo_producto === 'BORLA') {
+
+            if (
+                !$request->filled('borla_codigo_color') ||
+                !$request->filled('borla_color')
+            ) {
+
+                return back()
+                    ->withErrors([
+                        'borla_color' => 'Debe indicar el código y el color de la borla.'
+                    ])
+                    ->withInput();
+
+            }
+
+        }
 
         DB::transaction(function () use ($request) {
 
@@ -183,24 +271,42 @@ class WebController extends Controller
                 ProductoBirrete::create([
                     'producto_id' => $producto->id,
                     'tipo_birrete' => $request->tipo_birrete ?? 'NORMAL',
-                    'color' => $request->color_birrete ?? 'No especificado',
-                    'carrera' => $request->carrera_birrete,
                 ]);
             }
 
             if ($request->tipo_producto === 'COLLARIN') {
                 ProductoCollarin::create([
-                    'producto_id' => $producto->id,
-                    'color' => $request->color_collarin ?? 'No especificado',
+                    'producto_id'    => $producto->id,
+                    'tipo_collarin'  => $request->tipo_collarin,
+                    'codigo_color'   => $request->tipo_collarin === 'NORMAL'
+                                            ? $request->codigo_color_collarin
+                                            : null,
+                    'color'          => $request->tipo_collarin === 'NORMAL'
+                                            ? $request->color_collarin
+                                            : null,
+                    'tamano'         => $request->tipo_collarin === 'UNIVERSITARIO'
+                                            ? $request->tamano_collarin
+                                            : null,
                 ]);
             }
 
             if ($request->tipo_producto === 'BORLA') {
                 ProductoBorla::create([
                     'producto_id' => $producto->id,
-                    'color' => $request->borla_color ?? 'No especificado',
-                    'carrera' => $request->borla_carrera,
+                    'codigo_color' => $request->borla_codigo_color,
+                    'color' => $request->borla_color,
                     'observaciones' => $request->borla_observaciones,
+                ]);
+            }
+
+            if ($request->tipo_producto === 'CAPA') {
+                ProductoCapa::create([
+                    'producto_id' => $producto->id,
+                    'talla' => $request->talla_capa ?? 'No especificado',
+                    'carrera' => $request->carrera_capa,
+                    'codigo_color' => $request->codigo_color_capa,
+                    'color' => $request->color_capa ?? 'No especificado',
+                    'observaciones' => $request->observaciones_capa,
                 ]);
             }
 
@@ -263,14 +369,20 @@ class WebController extends Controller
 
     public function editarProducto($id)
     {
-        $producto = Producto::with(['toga', 'birrete', 'collarin', 'borla'])->findOrFail($id);
+        $producto = Producto::with(['toga', 'birrete', 'collarin', 'borla', 'capa'])->findOrFail($id);
 
         return view('productos.edit', compact('producto'));
     }
     
     public function actualizarProducto(Request $request, $id)
     {
-        $producto = Producto::with(['toga', 'birrete', 'collarin', 'borla'])->findOrFail($id);
+        $producto = Producto::with([
+            'toga',
+            'capa',
+            'birrete',
+            'collarin',
+            'borla'
+        ])->findOrFail($id);
 
         $request->validate([
             'codigo' => [
@@ -279,53 +391,69 @@ class WebController extends Controller
                 'max:50',
                 Rule::unique('productos', 'codigo')->ignore($producto->id),
             ],
+
             'nombre' => 'required|string|max:150',
             'descripcion' => 'nullable|string',
             'precio_alquiler' => 'required|numeric|min:0',
             'stock_total' => 'required|integer|min:0',
             'activo' => 'required|boolean',
 
-            // Campos específicos de toga
-            'talla' => 'nullable|string|max:50',
+            // TOGA
+            'talla_toga' => 'nullable|string|max:50',
             'color_toga' => 'nullable|string|max:50',
             'observaciones_toga' => 'nullable|string',
 
-            // Campos específicos de birrete
+            // CAPA
+            'codigo_color_capa' => 'nullable|string|max:50',
+            'color_capa' => 'nullable|string|max:50',
+            'carrera_capa' => 'nullable|in:ADMINISTRACION,AGRONOMIA,DERECHO,PEDAGOGIA,MEDICINA,CIENCIAS_ECONOMICAS',
+            'talla_capa' => 'nullable|string|max:50',
+            'observaciones_capa' => 'nullable|string',
+
+            // BIRRETE
             'tipo_birrete' => 'nullable|in:ESTANDAR,NORMAL,UNIVERSITARIO',
             'color_birrete' => 'nullable|string|max:100',
-            'carrera_birrete' => 'nullable|in:ADMINISTRACION,AGRONOMIA,DERECHO,PEDAGOGIA',
-            'tiene_borlas_extra' => 'nullable|boolean',
-            'descripcion_borlas_extra' => 'nullable|string',
+            'observaciones_birrete' => 'nullable|string',
 
-            // Campos específicos de collarín
+            // COLLARIN
             'tipo_collarin' => 'nullable|in:NORMAL,UNIVERSITARIO',
+            'codigo_color_collarin' => 'nullable|string|max:50',
             'color_collarin' => 'nullable|string|max:100',
-            'tamano' => 'nullable|in:PEQUENO,GRANDE',
+            'tamano_collarin' => 'nullable|in:PEQUENO,GRANDE',
 
-            // Campos específicos de borla
+            // BORLA
+            'borla_codigo_color' => 'nullable|string|max:50',
             'borla_color' => 'nullable|string|max:100',
-            'borla_carrera' => 'nullable|string|max:100',
             'borla_observaciones' => 'nullable|string',
+
         ]);
 
         DB::transaction(function () use ($request, $producto) {
+
             $stockTotalAnterior = $producto->stock_total;
             $stockAlquilado = $producto->stock_alquilado;
 
             $nuevoStockTotal = (int) $request->stock_total;
 
             if ($nuevoStockTotal < $stockAlquilado) {
-                throw new \Exception('El stock total no puede ser menor que el stock actualmente alquilado.');
+                throw new \Exception(
+                    'El stock total no puede ser menor que el stock actualmente alquilado.'
+                );
             }
 
             $diferenciaStock = $nuevoStockTotal - $stockTotalAnterior;
-            $nuevoStockDisponible = $producto->stock_disponible + $diferenciaStock;
+
+            $nuevoStockDisponible =
+                $producto->stock_disponible + $diferenciaStock;
 
             if ($nuevoStockDisponible < 0) {
-                throw new \Exception('El stock disponible no puede quedar negativo.');
+                throw new \Exception(
+                    'El stock disponible no puede quedar negativo.'
+                );
             }
 
             $producto->update([
+
                 'codigo' => $request->codigo,
                 'nombre' => $request->nombre,
                 'descripcion' => $request->descripcion,
@@ -333,50 +461,180 @@ class WebController extends Controller
                 'stock_total' => $nuevoStockTotal,
                 'stock_disponible' => $nuevoStockDisponible,
                 'activo' => $request->activo,
+
             ]);
 
+            /*
+            |--------------------------------------------------------------------------
+            | TOGA
+            |--------------------------------------------------------------------------
+            */
+
             if ($producto->tipo_producto === 'TOGA' && $producto->toga) {
+
                 $producto->toga->update([
-                    'talla' => $request->input('talla', $producto->toga->talla),
-                    'color' => $request->input('color_toga', $producto->toga->color),
-                    'observaciones' => $request->input('observaciones_toga', $producto->toga->observaciones),
+
+                    'talla' => $request->input(
+                        'talla_toga',
+                        $producto->toga->talla
+                    ),
+
+                    'color' => $request->input(
+                        'color_toga',
+                        $producto->toga->color
+                    ),
+
+                    'observaciones' => $request->input(
+                        'observaciones_toga',
+                        $producto->toga->observaciones
+                    ),
+
                 ]);
+
             }
+
+            /*
+            |--------------------------------------------------------------------------
+            | CAPA
+            |--------------------------------------------------------------------------
+            */
+
+            if ($producto->tipo_producto === 'CAPA') {
+
+                $producto->capa()->updateOrCreate(
+
+                    [
+                        'producto_id' => $producto->id
+                    ],
+
+                    [
+
+                        'talla' => $request->input(
+                            'talla_capa',
+                            $producto->capa->talla ?? 'No especificado'
+                        ),
+
+                        'carrera' => $request->input(
+                            'carrera_capa',
+                            $producto->capa->carrera ?? null
+                        ),
+
+                        'codigo_color' => $request->input(
+                            'codigo_color_capa',
+                            $producto->capa->codigo_color ?? null
+                        ),
+
+                        'color' => $request->input(
+                            'color_capa',
+                            $producto->capa->color ?? 'No especificado'
+                        ),
+
+                        'observaciones' => $request->input(
+                            'observaciones_capa',
+                            $producto->capa->observaciones ?? null
+                        ),
+
+                    ]
+
+                );
+
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | BIRRETE
+            |--------------------------------------------------------------------------
+            */
 
             if ($producto->tipo_producto === 'BIRRETE' && $producto->birrete) {
+
                 $producto->birrete->update([
-                    'tipo_birrete' => $request->input('tipo_birrete', $producto->birrete->tipo_birrete),
-                    'color' => $request->input('color_birrete', $producto->birrete->color),
-                    'carrera' => $request->input('carrera', $producto->birrete->carrera),
-                    'tiene_borlas_extra' => $request->input('tiene_borlas_extra', $producto->birrete->tiene_borlas_extra),
-                    'descripcion_borlas_extra' => $request->input('descripcion_borlas_extra', $producto->birrete->descripcion_borlas_extra),
+
+                    'tipo_birrete' => $request->input(
+                        'tipo_birrete',
+                        $producto->birrete->tipo_birrete
+                    ),
+
                 ]);
+
             }
+
+            /*
+            |--------------------------------------------------------------------------
+            | COLLARÍN
+            |--------------------------------------------------------------------------
+            */
 
             if ($producto->tipo_producto === 'COLLARIN' && $producto->collarin) {
+
                 $producto->collarin->update([
-                    'tipo_collarin' => $request->input('tipo_collarin', $producto->collarin->tipo_collarin),
-                    'color' => $request->input('color_collarin', $producto->collarin->color),
-                    'tamano' => $request->input('tamano', $producto->collarin->tamano),
+
+                    'tipo_collarin' => $request->input(
+                        'tipo_collarin',
+                        $producto->collarin->tipo_collarin
+                    ),
+
+                    'codigo_color' => $request->tipo_collarin === 'NORMAL'
+                        ? $request->codigo_color_collarin
+                        : null,
+
+                    'color' => $request->tipo_collarin === 'NORMAL'
+                        ? $request->color_collarin
+                        : null,
+
+                    'tamano' => $request->tipo_collarin === 'UNIVERSITARIO'
+                        ? $request->tamano_collarin
+                        : null,
+
                 ]);
+
             }
 
+            /*
+            |--------------------------------------------------------------------------
+            | BORLA
+            |--------------------------------------------------------------------------
+            */
+
             if ($producto->tipo_producto === 'BORLA') {
+
                 $producto->borla()->updateOrCreate(
-                    ['producto_id' => $producto->id],
+
                     [
-                        'color' => $request->input('borla_color', $producto->borla->color ?? 'No especificado'),
-                        'carrera' => $request->input('borla_carrera', $producto->borla->carrera ?? null),
-                        'observaciones' => $request->input('borla_observaciones', $producto->borla->observaciones ?? null),
+                        'producto_id' => $producto->id
+                    ],
+
+                    [
+
+                        'codigo_color' => $request->input(
+                            'borla_codigo_color',
+                            $producto->borla->codigo_color ?? null
+                        ),
+
+                        'color' => $request->input(
+                            'borla_color',
+                            $producto->borla->color ?? 'No especificado'
+                        ),
+
+                        'observaciones' => $request->input(
+                            'borla_observaciones',
+                            $producto->borla->observaciones ?? null
+                        ),
+
                     ]
+
                 );
+
             }
 
         });
 
         return redirect()
             ->route('productos.index')
-            ->with('success', 'Producto actualizado correctamente.');
+            ->with(
+                'success',
+                'Producto actualizado correctamente.'
+            );
     }
 
     public function desactivarProducto($id)
@@ -676,6 +934,13 @@ class WebController extends Controller
             ->orderBy('nombre')
             ->get();
 
+        $capas = Producto::with('capa')
+            ->where('activo', true)
+            ->where('tipo_producto', 'CAPA')
+            ->where('stock_disponible', '>', 0)
+            ->orderBy('nombre')
+            ->get();
+
         $collarines = Producto::with('collarin')
             ->where('activo', true)
             ->where('tipo_producto', 'COLLARIN')
@@ -702,7 +967,8 @@ class WebController extends Controller
             'togas',
             'collarines',
             'birretes',
-            'borlas'
+            'borlas',
+            'capas'
         ));
     }
 
@@ -744,6 +1010,7 @@ class WebController extends Controller
             'productos.*.cantidad' => ['required', 'integer', 'min:1'],
 
             'productos.*.collarin_id' => ['required', 'exists:productos,id'],
+            'productos.*.capa_id' => ['nullable', 'exists:productos,id'],   
 
             'productos.*.birrete_incluido' => ['nullable'],
             'productos.*.birrete_id' => ['nullable', 'exists:productos,id'],
@@ -843,6 +1110,18 @@ class WebController extends Controller
         foreach ($datos['productos'] as $productoFormulario) {
             $toga = Producto::with('toga')->findOrFail($productoFormulario['producto_id']);
 
+            if (
+                $toga->toga &&
+                $toga->toga->tipo_toga === 'UNIVERSITARIA' &&
+                empty($productoFormulario['capa_id'])
+            ) {
+                return back()
+                    ->withErrors([
+                        'productos' => 'La toga universitaria "' . $toga->nombre . '" requiere seleccionar una capa.',
+                    ])
+                    ->withInput();
+            }
+
             if ($toga->tipo_producto !== 'TOGA') {
                 return back()
                     ->withErrors(['productos' => 'Solo se pueden seleccionar togas como producto principal.'])
@@ -886,23 +1165,86 @@ class WebController extends Controller
                 'precio_unitario' => 0,
             ];
 
-            // Birrete incluido opcional.
-            if (!empty($productoFormulario['birrete_incluido']) && !empty($productoFormulario['birrete_id'])) {
-                $birrete = Producto::findOrFail($productoFormulario['birrete_id']);
+            /*
+    |--------------------------------------------------------------------------
+    | Capa obligatoria para togas universitarias
+    |--------------------------------------------------------------------------
+    */
+            if (
+                $toga->toga &&
+                $toga->toga->tipo_toga === 'UNIVERSITARIA'
+            ) {
 
-                if ($birrete->tipo_producto !== 'BIRRETE') {
-                    return back()
-                        ->withErrors(['productos' => 'El birrete incluido debe ser un producto tipo BIRRETE.'])
-                        ->withInput();
-                }
+                $capa = Producto::with('capa')->findOrFail($productoFormulario['capa_id']);
 
-                if ($cantidadToga > $birrete->stock_disponible) {
+                if ($capa->tipo_producto !== 'CAPA') {
                     return back()
                         ->withErrors([
-                            'productos' => 'No hay suficiente stock disponible para el birrete: ' . $birrete->nombre,
+                            'productos' => 'El accesorio seleccionado debe ser una capa.',
                         ])
                         ->withInput();
                 }
+
+                if ($cantidadToga > $capa->stock_disponible) {
+                    return back()
+                        ->withErrors([
+                            'productos' => 'No hay suficiente stock disponible para la capa: ' . $capa->nombre,
+                        ])
+                        ->withInput();
+                }
+
+                $accesorios[] = [
+                    'producto_id' => $capa->id,
+                    'tipo_accesorio' => 'CAPA',
+                    'tipo_cobro' => 'INCLUIDO',
+                    'cantidad' => $cantidadToga,
+                    'precio_unitario' => 0,
+                ];
+            }
+
+            // Birrete incluido opcional.
+            if (!empty($productoFormulario['birrete_incluido']) && !empty($productoFormulario['birrete_id'])) {
+                $birrete = Producto::with('birrete')->findOrFail($productoFormulario['birrete_id']);
+
+                    if ($birrete->tipo_producto !== 'BIRRETE') {
+                        return back()
+                            ->withErrors([
+                                'productos' => 'El birrete incluido debe ser un producto tipo BIRRETE.'
+                            ])
+                            ->withInput();
+                    }
+
+                    if (
+                        $toga->toga &&
+                        $birrete->birrete &&
+                        $toga->toga->tipo_toga === 'UNIVERSITARIA'
+                    ) {
+                        if ($birrete->birrete->tipo_birrete !== 'UNIVERSITARIO') {
+                            return back()
+                                ->withErrors([
+                                    'productos' => 'La toga "' . $toga->nombre . '" únicamente admite birretes universitarios.',
+                                ])
+                                ->withInput();
+                        }
+
+                        if ($birrete->birrete->carrera_birrete !== $toga->toga->carrera) {
+                            return back()
+                                ->withErrors([
+                                    'productos' => 'El birrete "' . $birrete->nombre .
+                                    '" no pertenece a la carrera "' .
+                                    $toga->toga->carrera . '".',
+                                ])
+                                ->withInput();
+                        }
+                    }
+
+                    if ($cantidadToga > $birrete->stock_disponible) {
+                        return back()
+                            ->withErrors([
+                                'productos' => 'No hay suficiente stock disponible para el birrete: ' . $birrete->nombre,
+                            ])
+                            ->withInput();
+                    }
 
                 $accesorios[] = [
                     'producto_id' => $birrete->id,
@@ -949,6 +1291,30 @@ class WebController extends Controller
                     return back()
                         ->withErrors(['productos' => 'El birrete extra debe ser un producto tipo BIRRETE.'])
                         ->withInput();
+                }
+
+                if (
+                    $toga->toga &&
+                    $birreteExtra->birrete &&
+                    $toga->toga->tipo_toga === 'UNIVERSITARIA'
+                ) {
+                    if ($birreteExtra->birrete->tipo_birrete !== 'UNIVERSITARIO') {
+                        return back()
+                            ->withErrors([
+                                'productos' => 'La toga "' . $toga->nombre . '" únicamente admite birretes universitarios.',
+                            ])
+                            ->withInput();
+                    }
+
+                    if ($birreteExtra->birrete->carrera_birrete !== $toga->toga->carrera) {
+                        return back()
+                            ->withErrors([
+                                'productos' => 'El birrete extra "' . $birreteExtra->nombre .
+                                '" no corresponde a la carrera "' .
+                                $toga->toga->carrera . '".',
+                            ])
+                            ->withInput();
+                    }
                 }
 
                 if ($cantidadExtra > $birreteExtra->stock_disponible) {

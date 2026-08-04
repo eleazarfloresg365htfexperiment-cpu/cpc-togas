@@ -11,8 +11,10 @@ class ProductoController extends Controller
     {
         $productos = Producto::with([
             'toga',
+            'capa',
             'birrete',
             'collarin',
+            'borla',
         ])
             ->orderBy('tipo_producto')
             ->orderBy('nombre')
@@ -28,8 +30,10 @@ class ProductoController extends Controller
     {
         $producto = Producto::with([
             'toga',
+            'capa',
             'birrete',
             'collarin',
+            'borla',
             'movimientosInventario',
         ])->findOrFail($id);
 
@@ -43,8 +47,10 @@ class ProductoController extends Controller
     {
         $productos = Producto::with([
             'toga',
+            'capa',
             'birrete',
             'collarin',
+            'borla',
         ])
             ->where('activo', true)
             ->where('stock_disponible', '>', 0)

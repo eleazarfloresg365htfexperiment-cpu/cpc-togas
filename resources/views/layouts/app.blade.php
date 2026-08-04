@@ -313,6 +313,16 @@
             color: #155e75;
         }
 
+        .badge-capa {
+            background: #ede9fe;
+            color: #6d28d9;
+        }
+
+        .badge-borla {
+            background: #fce7f3;
+            color: #be185d;
+        }
+
         .amount-positive {
             color: #16a34a;
             font-weight: 700;

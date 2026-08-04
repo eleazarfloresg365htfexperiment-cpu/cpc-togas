@@ -10,8 +10,8 @@ class ProductoBorla extends Model
 
     protected $fillable = [
         'producto_id',
+        'codigo_color',
         'color',
-        'carrera',
         'observaciones',
     ];
 

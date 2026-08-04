@@ -297,7 +297,11 @@
                         @if($togas->count() > 0)
 
                             @foreach($togas as $toga)
-                                <div class="border rounded-4 p-3 mb-3 toga-item" id="toga_item_{{ $toga->id }}">
+                                <div
+                                    class="border rounded-4 p-3 mb-3 toga-item"
+                                    id="toga_item_{{ $toga->id }}"
+                                    data-tipo="{{ $toga->toga->tipo_toga }}"
+                                >
 
                                     <div class="row g-3 align-items-center">
 
@@ -405,6 +409,36 @@
                                                         </option>
                                                     @endforeach
                                                 </select>
+
+                                                {{-- CAPA (solo para togas universitarias) --}}
+                                                <div class="col-md-4 capa-container d-none">
+
+                                                    <label class="form-label fw-semibold">
+                                                        Capa
+                                                    </label>
+
+                                                    <select
+                                                        name="productos[{{ $toga->id }}][capa_id]"
+                                                        id="capa_{{ $toga->id }}"
+                                                        class="form-select accesorio-input"
+                                                        disabled
+                                                    >
+                                                        <option value="">Selecciona una capa...</option>
+
+                                                        @foreach($capas as $capa)
+                                                            <option
+                                                                value="{{ $capa->id }}"
+                                                                data-carrera="{{ $capa->capa->carrera }}"
+                                                                {{ old("productos.$toga->id.capa_id") == $capa->id ? 'selected' : '' }}
+                                                            >
+                                                                {{ $capa->nombre }}
+                                                                - Disp: {{ $capa->stock_disponible }}
+                                                            </option>
+                                                        @endforeach
+
+                                                    </select>
+
+                                                </div>
 
                                                 <small class="text-muted">
                                                     Incluido en el precio de la toga.
@@ -718,6 +752,13 @@
             const botonConfig = document.getElementById('btn_config_' + productoId);
             const resumen = document.getElementById('resumen_' + productoId);
 
+            const togaItem = document.getElementById('toga_item_' + productoId);
+
+            const tipoToga = togaItem?.dataset.tipo || '';
+
+            const capaContainer = togaItem?.querySelector('.capa-container');
+            const capaSelect = document.getElementById('capa_' + productoId);
+
             const inputsConfiguracion = document.querySelectorAll(
                 '#panel_config_' + productoId + ' select, ' +
                 '#panel_config_' + productoId + ' input'
@@ -740,6 +781,22 @@
 
                 if (!activo) {
                     collarin.value = '';
+                }
+            }
+
+            // Mostrar la capa únicamente para togas universitarias.
+            if (capaContainer && capaSelect) {
+
+                const esUniversitaria = tipoToga === 'UNIVERSITARIA';
+
+                capaContainer.classList.toggle('d-none', !esUniversitaria);
+
+                capaSelect.disabled = !activo || !esUniversitaria;
+
+                capaSelect.required = activo && esUniversitaria;
+
+                if (!activo || !esUniversitaria) {
+                    capaSelect.value = '';
                 }
             }
 

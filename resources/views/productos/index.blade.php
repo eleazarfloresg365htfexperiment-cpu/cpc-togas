@@ -2,7 +2,7 @@
 
 @section('title', 'Productos')
 @section('page_title', '👗 Productos')
-@section('page_subtitle', 'Consulta general de togas, birretes, collarines y su inventario')
+@section('page_subtitle', 'Consulta general de togas, capas, birretes, collarines, borlas y su inventario.')
 
 @section('content')
 
@@ -48,14 +48,29 @@
                 <label class="form-label fw-semibold">Tipo de producto</label>
                 <select name="tipo" class="form-select">
                     <option value="">Todos los tipos</option>
-                    <option value="TOGA" {{ request('tipo') == 'TOGA' ? 'selected' : '' }}>
+                    <option value="TOGA"
+                        {{ request('tipo') == 'TOGA' ? 'selected' : '' }}>
                         TOGA
                     </option>
-                    <option value="BIRRETE" {{ request('tipo') == 'BIRRETE' ? 'selected' : '' }}>
+
+                    <option value="CAPA"
+                        {{ request('tipo') == 'CAPA' ? 'selected' : '' }}>
+                        CAPA
+                    </option>
+
+                    <option value="BIRRETE"
+                        {{ request('tipo') == 'BIRRETE' ? 'selected' : '' }}>
                         BIRRETE
                     </option>
-                    <option value="COLLARIN" {{ request('tipo') == 'COLLARIN' ? 'selected' : '' }}>
+
+                    <option value="COLLARIN"
+                        {{ request('tipo') == 'COLLARIN' ? 'selected' : '' }}>
                         COLLARÍN
+                    </option>
+
+                    <option value="BORLA"
+                        {{ request('tipo') == 'BORLA' ? 'selected' : '' }}>
+                        BORLA
                     </option>
                 </select>
             </div>
@@ -171,13 +186,41 @@
 
                             <td>
                                 @if($producto->tipo_producto === 'TOGA')
-                                    <span class="badge-soft badge-toga">TOGA</span>
+
+                                    <span class="badge-soft badge-toga">
+                                        TOGA
+                                    </span>
+
+                                @elseif($producto->tipo_producto === 'CAPA')
+
+                                    <span class="badge-soft badge-capa">
+                                        CAPA
+                                    </span>
+
                                 @elseif($producto->tipo_producto === 'BIRRETE')
-                                    <span class="badge-soft badge-birrete">BIRRETE</span>
+
+                                    <span class="badge-soft badge-birrete">
+                                        BIRRETE
+                                    </span>
+
                                 @elseif($producto->tipo_producto === 'COLLARIN')
-                                    <span class="badge-soft badge-collarin">COLLARÍN</span>
+
+                                    <span class="badge-soft badge-collarin">
+                                        COLLARÍN
+                                    </span>
+
+                                @elseif($producto->tipo_producto === 'BORLA')
+
+                                    <span class="badge-soft badge-borla">
+                                        BORLA
+                                    </span>
+
                                 @else
-                                    <span class="badge bg-secondary">{{ $producto->tipo_producto }}</span>
+
+                                    <span class="badge bg-secondary">
+                                        {{ $producto->tipo_producto }}
+                                    </span>
+
                                 @endif
                             </td>
 

@@ -8,6 +8,7 @@
 
 @php
     $detalleToga = $producto->productoToga ?? $producto->toga ?? null;
+    $detalleCapa = $producto->productoCapa ?? $producto->capa ?? null;
     $detalleBirrete = $producto->productoBirrete ?? $producto->birrete ?? null;
     $detalleCollarin = $producto->productoCollarin ?? $producto->collarin ?? null;
     $detalleBorla = $producto->productoBorla ?? $producto->borla ?? null;
@@ -55,10 +56,14 @@
 
                 @if($producto->tipo_producto === 'TOGA')
                     <span class="badge-soft badge-toga">TOGA</span>
+                @elseif($producto->tipo_producto === 'CAPA')
+                    <span class="badge-soft badge-capa">CAPA</span>
                 @elseif($producto->tipo_producto === 'BIRRETE')
                     <span class="badge-soft badge-birrete">BIRRETE</span>
                 @elseif($producto->tipo_producto === 'COLLARIN')
                     <span class="badge-soft badge-collarin">COLLARÍN</span>
+                @elseif($producto->tipo_producto === 'BORLA')
+                    <span class="badge-soft badge-borla">BORLA</span>
                 @else
                     <span class="badge bg-secondary">{{ $producto->tipo_producto }}</span>
                 @endif
@@ -203,14 +208,16 @@
                         <div class="row g-3">
 
                             <div class="col-md-6">
-                                <label for="talla" class="form-label">Talla</label>
-                                <input type="text"
-                                       name="talla"
-                                       id="talla"
-                                       class="form-control"
-                                       value="{{ old('talla', $detalleToga->talla ?? '') }}"
-                                       placeholder="Ej: S, M, L, XL"
-                                       required>
+                                <label for="talla_toga" class="form-label">Talla</label>
+                                <input
+                                    type="text"
+                                    name="talla_toga"
+                                    id="talla_toga"
+                                    class="form-control"
+                                    value="{{ old('talla_toga', $detalleToga->talla ?? '') }}"
+                                    placeholder="Ej: S, M, L, XL"
+                                    required
+                                >
                             </div>
 
                             <div class="col-md-6">
@@ -235,6 +242,108 @@
 
                         </div>
                     </div>
+                @endif
+
+                @if($producto->tipo_producto === 'CAPA')
+
+                    <div class="alert alert-light border rounded-4 mt-4">
+
+                        <div class="fw-bold mb-3">
+                            🧥 Detalles de capa
+                        </div>
+
+                        <div class="row g-3">
+
+                            <div class="col-md-6">
+
+                                <label class="form-label">
+                                    Talla
+                                </label>
+
+                                <input
+                                    type="text"
+                                    name="talla_capa"
+                                    class="form-control"
+                                    value="{{ old('talla_capa', $detalleCapa->talla ?? '') }}"
+                                    placeholder="Ej. S, M, L, XL"
+                                >
+
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Código de color</label>
+
+                                <input
+                                    type="text"
+                                    name="codigo_color_capa"
+                                    class="form-control"
+                                    value="{{ old('codigo_color_capa', $detalleCapa->codigo_color ?? '') }}"
+                                >
+                            </div>
+
+                            <div class="col-md-6">
+
+                                <label class="form-label">
+                                    Color
+                                </label>
+
+                                <input
+                                    type="text"
+                                    name="color_capa"
+                                    class="form-control"
+                                    value="{{ old('color_capa', $detalleCapa->color ?? '') }}"
+                                    placeholder="Ej. Negro"
+                                >
+
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Carrera</label>
+
+                                <select
+                                    name="carrera_capa"
+                                    class="form-select">
+
+                                    <option value="">Seleccione...</option>
+
+                                    @foreach([
+                                        'ADMINISTRACION'=>'Administración',
+                                        'AGRONOMIA'=>'Agronomía',
+                                        'DERECHO'=>'Derecho',
+                                        'PEDAGOGIA'=>'Pedagogía',
+                                        'MEDICINA'=>'Medicina',
+                                        'CIENCIAS_ECONOMICAS'=>'Ciencias Económicas'
+                                    ] as $valor=>$texto)
+
+                                        <option
+                                            value="{{ $valor }}"
+                                            {{ old('carrera_capa', $detalleCapa->carrera ?? '') == $valor ? 'selected' : '' }}>
+                                            {{ $texto }}
+                                        </option>
+
+                                    @endforeach
+
+                                </select>
+                            </div>
+
+                            <div class="col-md-12">
+
+                                <label class="form-label">
+                                    Observaciones
+                                </label>
+
+                                <textarea
+                                    name="observaciones_capa"
+                                    rows="3"
+                                    class="form-control"
+                                >{{ old('observaciones_capa', $detalleCapa->observaciones ?? '') }}</textarea>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
                 @endif
 
                 @if($producto->tipo_producto === 'BIRRETE')
@@ -336,27 +445,64 @@
                             </div>
 
                             <div class="col-md-4">
-                                <label for="color_collarin" class="form-label">Color</label>
-                                <select name="color_collarin" id="color_collarin" class="form-select" required>
-                                    <option value="DORADO" {{ old('color_collarin', $detalleCollarin->color ?? '') === 'DORADO' ? 'selected' : '' }}>
-                                        Dorado
-                                    </option>
-                                    <option value="ROJO" {{ old('color_collarin', $detalleCollarin->color ?? '') === 'ROJO' ? 'selected' : '' }}>
-                                        Rojo
-                                    </option>
-                                    <option value="VERDE" {{ old('color_collarin', $detalleCollarin->color ?? '') === 'VERDE' ? 'selected' : '' }}>
-                                        Verde
-                                    </option>
+
+                                <label class="form-label">
+                                    Carrera
+                                </label>
+
+                                <select
+                                    name="carrera_collarin"
+                                    class="form-select">
+
+                                    <option value="">Seleccione...</option>
+
+                                    @foreach([
+                                        'ADMINISTRACION'=>'Administración',
+                                        'AGRONOMIA'=>'Agronomía',
+                                        'DERECHO'=>'Derecho',
+                                        'PEDAGOGIA'=>'Pedagogía',
+                                        'MEDICINA'=>'Medicina',
+                                        'CIENCIAS_ECONOMICAS'=>'Ciencias Económicas'
+                                    ] as $valor=>$texto)
+
+                                        <option
+                                            value="{{ $valor }}"
+                                            {{ old('carrera_collarin', $detalleCollarin->carrera ?? '') == $valor ? 'selected' : '' }}>
+                                            {{ $texto }}
+                                        </option>
+
+                                    @endforeach
+
                                 </select>
+
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">Código de color</label>
+
+                                <input
+                                    type="text"
+                                    name="codigo_color_collarin"
+                                    class="form-control"
+                                    value="{{ old('codigo_color_collarin', $detalleCollarin->codigo_color ?? '') }}">
+                            </div>
+
+                            <div class="col-md-4">
+                                <label for="color_collarin" class="form-label">Color</label>
+                                <input
+                                    type="text"
+                                    name="color_collarin"
+                                    class="form-control"
+                                    value="{{ old('color_collarin', $detalleCollarin->color ?? '') }}">
                             </div>
 
                             <div class="col-md-4">
                                 <label for="tamano" class="form-label">Tamaño</label>
-                                <select name="tamano" id="tamano" class="form-select" required>
-                                    <option value="PEQUENO" {{ old('tamano', $detalleCollarin->tamano ?? '') === 'PEQUENO' ? 'selected' : '' }}>
+                                <select name="tamano_collarin" id="tamano_collarin" class="form-select" required>
+                                    <option value="PEQUENO" {{ old('tamano_collarin', $detalleCollarin->tamano ?? '') === 'PEQUENO' ? 'selected' : '' }}>
                                         Pequeño
                                     </option>
-                                    <option value="GRANDE" {{ old('tamano', $detalleCollarin->tamano ?? '') === 'GRANDE' ? 'selected' : '' }}>
+                                    <option value="GRANDE" {{ old('tamano_collarin', $detalleCollarin->tamano ?? '') === 'GRANDE' ? 'selected' : '' }}>
                                         Grande
                                     </option>
                                 </select>
@@ -387,13 +533,15 @@
                                 </div>
 
                                 <div class="col-md-6">
-                                    <label class="form-label">Carrera / área</label>
+                                    <label class="form-label">
+                                        Código de color
+                                    </label>
+
                                     <input
                                         type="text"
-                                        name="borla_carrera"
+                                        name="borla_codigo_color"
                                         class="form-control"
-                                        value="{{ old('borla_carrera', $detalleBorla->carrera ?? '') }}"
-                                    >
+                                        value="{{ old('borla_codigo_color', $detalleBorla->codigo_color ?? '') }}">
                                 </div>
 
                                 <div class="col-md-12">
@@ -434,5 +582,80 @@
     </div>
 
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    const carreras = {
+        ADMINISTRACION: {
+            color: "Azul Marino",
+            codigo: "ADM"
+        },
+        AGRONOMIA: {
+            color: "Verde",
+            codigo: "AGR"
+        },
+        DERECHO: {
+            color: "Rojo",
+            codigo: "DER"
+        },
+        PEDAGOGIA: {
+            color: "Celeste",
+            codigo: "PED"
+        },
+        MEDICINA: {
+            color: "Morado",
+            codigo: "MED"
+        },
+        CIENCIAS_ECONOMICAS: {
+            color: "Dorado",
+            codigo: "ECO"
+        }
+    };
+
+    function actualizarCampos(config){
+
+        const carrera = document.querySelector(config.carrera);
+        if(!carrera) return;
+
+        const codigo = document.querySelector(config.codigo);
+        const color  = document.querySelector(config.color);
+
+        function actualizar(){
+
+            const datos = carreras[carrera.value];
+
+            if(!datos){
+                return;
+            }
+
+            if(codigo){
+                codigo.value = datos.codigo;
+            }
+
+            if(color){
+                color.value = datos.color;
+            }
+
+        }
+
+        carrera.addEventListener('change', actualizar);
+        actualizar();
+    }
+
+    actualizarCampos({
+        carrera:'select[name="carrera_capa"]',
+        codigo:'input[name="codigo_color_capa"]',
+        color:'input[name="color_capa"]'
+    });
+
+    actualizarCampos({
+        carrera:'select[name="carrera_collarin"]',
+        codigo:'input[name="codigo_color_collarin"]',
+        color:'input[name="color_collarin"]'
+    });
+
+});
+</script>
 
 @endsection

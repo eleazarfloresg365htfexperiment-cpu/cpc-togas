@@ -96,6 +96,10 @@
                             <option value="BORLA" {{ old('tipo_producto') === 'BORLA' ? 'selected' : '' }}>
                                 BORLA
                             </option>
+
+                            <option value="CAPA" {{ old('tipo_producto') === 'CAPA' ? 'selected' : '' }}>
+                                CAPA
+                            </option>
                         </select>
                     </div>
 
@@ -194,6 +198,63 @@
                     </div>
                 </div>
 
+                <div id="campos-capa" class="tipo-extra d-none">
+
+                    <div class="row g-4">
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Talla de capa</label>
+
+                            <input
+                                type="text"
+                                name="talla_capa"
+                                class="form-control"
+                                value="{{ old('talla_capa') }}"
+                                placeholder="Ej. S, M, L, XL"
+                            >
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Código de color</label>
+
+                            <input
+                                type="text"
+                                name="codigo_color_capa"
+                                class="form-control"
+                                value="{{ old('codigo_color_capa') }}"
+                                placeholder="Ej. C-001"
+                            >
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Color de capa</label>
+
+                            <input
+                                type="text"
+                                name="color_capa"
+                                class="form-control"
+                                value="{{ old('color_capa') }}"
+                                placeholder="Ej. Negro, azul marino"
+                            >
+                        </div>
+
+                        <div class="col-md-12">
+                            <label class="form-label fw-semibold">
+                                Observaciones
+                            </label>
+
+                            <textarea
+                                name="observaciones_capa"
+                                class="form-control"
+                                rows="2"
+                                placeholder="Detalles adicionales de la capa..."
+                            >{{ old('observaciones_capa') }}</textarea>
+                        </div>
+
+                    </div>
+
+                </div>
+
                 <div id="campos-birrete" class="tipo-extra d-none">
                     <div class="row g-4">
 
@@ -215,58 +276,134 @@
                                 </option>
                             </select>
                         </div>
-
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold">Color de birrete</label>
-                            <input 
-                                type="text" 
-                                name="color_birrete" 
-                                class="form-control"
-                                value="{{ old('color_birrete') }}"
-                                placeholder="Ej. Negro"
-                            >
-                        </div>
-
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold">Carrera / área</label>
-                            <select name="carrera_birrete" class="form-select">
-                                <option value="">Sin carrera específica</option>
-
-                                <option value="ADMINISTRACION" {{ old('carrera_birrete') === 'ADMINISTRACION' ? 'selected' : '' }}>
-                                    Administración
-                                </option>
-
-                                <option value="AGRONOMIA" {{ old('carrera_birrete') === 'AGRONOMIA' ? 'selected' : '' }}>
-                                    Agronomía
-                                </option>
-
-                                <option value="DERECHO" {{ old('carrera_birrete') === 'DERECHO' ? 'selected' : '' }}>
-                                    Derecho
-                                </option>
-
-                                <option value="PEDAGOGIA" {{ old('carrera_birrete') === 'PEDAGOGIA' ? 'selected' : '' }}>
-                                    Pedagogía
-                                </option>
-                            </select>
-                        </div>
                     </div>
                 </div>
 
                 <div id="campos-collarin" class="tipo-extra d-none">
+
                     <div class="row g-4">
 
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold">Color de collarín</label>
-                            <input 
-                                type="text" 
-                                name="color_collarin" 
-                                class="form-control"
-                                value="{{ old('color_collarin') }}"
-                                placeholder="Ej. Dorado, azul, rojo..."
+                        <div class="col-md-12">
+                            <label class="form-label fw-semibold mb-2">
+                                Tipo de collarín
+                            </label>
+
+                            <div class="d-flex gap-4">
+
+                                <div class="form-check">
+                                    <input
+                                        class="form-check-input"
+                                        type="radio"
+                                        name="tipo_collarin"
+                                        id="collarin_normal"
+                                        value="NORMAL"
+                                        {{ old('tipo_collarin', 'NORMAL') == 'NORMAL' ? 'checked' : '' }}
+                                    >
+
+                                    <label class="form-check-label" for="collarin_normal">
+                                        Normal
+                                    </label>
+                                </div>
+
+                                <div class="form-check">
+                                    <input
+                                        class="form-check-input"
+                                        type="radio"
+                                        name="tipo_collarin"
+                                        id="collarin_universitario"
+                                        value="UNIVERSITARIO"
+                                        {{ old('tipo_collarin') == 'UNIVERSITARIO' ? 'checked' : '' }}
+                                    >
+
+                                    <label class="form-check-label" for="collarin_universitario">
+                                        Universitario
+                                    </label>
+                                </div>
+
+                            </div>
+                        </div>
+
+                       <div class="col-md-6" id="grupo-color-collarin">
+
+                            <div class="row">
+
+                                <div class="col-md-3">
+
+                                    <label class="form-label fw-semibold">
+                                        Código de color
+                                    </label>
+
+                                    <input
+                                        type="text"
+                                        name="codigo_color_collarin"
+                                        class="form-control"
+                                        value="{{ old('codigo_color_collarin') }}"
+                                    >
+
+                                </div>
+
+                                <div class="col-md-9">
+
+                                    <label class="form-label fw-semibold">
+                                        Color
+                                    </label>
+
+                                    <input
+                                        list="listaColoresCollarin"
+                                        name="color_collarin"
+                                        class="form-control"
+                                        value="{{ old('color_collarin') }}"
+                                        placeholder="Ej. Azul"
+                                    >
+
+                                    <datalist id="listaColoresCollarin">
+                                        <option value="Azul">
+                                        <option value="Rojo">
+                                        <option value="Verde">
+                                        <option value="Dorado">
+                                        <option value="Negro">
+                                        <option value="Blanco">
+                                    </datalist>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="col-md-6 d-none" id="grupo-tamano-collarin">
+
+                            <label class="form-label fw-semibold">
+                                Tamaño
+                            </label>
+
+                            <select
+                                name="tamano_collarin"
+                                class="form-select"
                             >
+                                <option value="">Seleccione...</option>
+
+                                <option
+                                    value="PEQUENO"
+                                    {{ old('tamano_collarin') == 'PEQUENO' ? 'selected' : '' }}
+                                >
+                                    Pequeño
+                                </option>
+
+                                <option
+                                    value="GRANDE"
+                                    {{ old('tamano_collarin') == 'GRANDE' ? 'selected' : '' }}
+                                >
+                                    Grande
+                                </option>
+
+                            </select>
+
                         </div>
 
                     </div>
+
                 </div>
 
                 <div id="campos-borla" class="tipo-extra d-none">
@@ -276,24 +413,27 @@
                         <div class="row g-3">
 
                             <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    Código de color
+                                </label>
+
+                                <input
+                                    type="text"
+                                    name="borla_codigo_color"
+                                    class="form-control"
+                                    value="{{ old('borla_codigo_color') }}"
+                                    placeholder="Ej. B-014"
+                                >
+                            </div>
+
+                            <div class="col-md-6">
                                 <label class="form-label fw-semibold">Color de borla</label>
                                 <input
                                     type="text"
                                     name="borla_color"
                                     class="form-control"
                                     value="{{ old('borla_color') }}"
-                                    placeholder="Ej. Roja, dorada, azul..."
-                                >
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold">Carrera / área</label>
-                                <input
-                                    type="text"
-                                    name="borla_carrera"
-                                    class="form-control"
-                                    value="{{ old('borla_carrera') }}"
-                                    placeholder="Ej. Derecho, Administración, General..."
+                                    placeholder="Ej. Azul marino"
                                 >
                             </div>
 
@@ -390,6 +530,7 @@
         const tipoProducto = document.getElementById('tipo_producto');
 
         const camposToga = document.getElementById('campos-toga');
+        const camposCapa = document.getElementById('campos-capa');
         const camposBirrete = document.getElementById('campos-birrete');
         const camposCollarin = document.getElementById('campos-collarin');
         const camposBorla = document.getElementById('campos-borla');
@@ -407,6 +548,7 @@
             if (camposBirrete) camposBirrete.classList.add('d-none');
             if (camposCollarin) camposCollarin.classList.add('d-none');
             if (camposBorla) camposBorla.classList.add('d-none');
+            if (camposCapa) camposCapa.classList.add('d-none');
         }
 
         function mostrarCamposSegunTipo() {
@@ -422,6 +564,10 @@
 
             if (tipo === 'TOGA' && camposToga) {
                 camposToga.classList.remove('d-none');
+            }
+
+            if (tipo === 'CAPA' && camposCapa) {
+                camposCapa.classList.remove('d-none');
             }
 
             if (tipo === 'BIRRETE' && camposBirrete) {
@@ -469,6 +615,37 @@
             stockInput.addEventListener('change', actualizarPreviewStock);
             actualizarPreviewStock();
         }
+
+        function actualizarCamposCollarin() {
+
+            const tipo = document.querySelector('input[name="tipo_collarin"]:checked');
+
+            if (!tipo) return;
+
+            const grupoColor = document.getElementById('grupo-color-collarin');
+            const grupoTamano = document.getElementById('grupo-tamano-collarin');
+
+            if (tipo.value === 'NORMAL') {
+
+                grupoColor.classList.remove('d-none');
+                grupoTamano.classList.add('d-none');
+
+            } else {
+
+                grupoColor.classList.add('d-none');
+                grupoTamano.classList.remove('d-none');
+
+            }
+
+        }
+
+        document.querySelectorAll('input[name="tipo_collarin"]').forEach(radio => {
+
+            radio.addEventListener('change', actualizarCamposCollarin);
+
+        });
+
+        actualizarCamposCollarin();
     });
 </script>
 

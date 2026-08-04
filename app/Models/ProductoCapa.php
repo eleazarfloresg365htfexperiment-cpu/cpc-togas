@@ -2,28 +2,27 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
-class ProductoBirrete extends Model
+class ProductoCapa extends Model
 {
     use HasFactory;
 
-    protected $table = 'producto_birretes';
+    protected $table = 'producto_capas';
 
     protected $fillable = [
         'producto_id',
-        'tipo_birrete',
+        'talla',
         'codigo_color',
         'color',
-        'tiene_borlas_extra',
-        'descripcion_borlas_extra',
+        'carrera',
+        'observaciones',
     ];
 
-    protected $casts = [
-        'tiene_borlas_extra' => 'boolean',
-    ];
-
+    /**
+     * Producto principal.
+     */
     public function producto()
     {
         return $this->belongsTo(Producto::class, 'producto_id');
