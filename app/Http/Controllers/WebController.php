@@ -470,26 +470,30 @@ class WebController extends Controller
             |--------------------------------------------------------------------------
             */
 
-            if ($producto->tipo_producto === 'TOGA' && $producto->toga) {
+            if ($producto->tipo_producto === 'TOGA') {
 
-                $producto->toga->update([
+                $this->guardarDetalle(
+                    'toga',
+                    $producto,
+                    [
 
-                    'talla' => $request->input(
-                        'talla_toga',
-                        $producto->toga->talla
-                    ),
+                        'talla' => $request->input(
+                            'talla_toga',
+                            $producto->toga->talla ?? null
+                        ),
 
-                    'color' => $request->input(
-                        'color_toga',
-                        $producto->toga->color
-                    ),
+                        'color' => $request->input(
+                            'color_toga',
+                            $producto->toga->color ?? null
+                        ),
 
-                    'observaciones' => $request->input(
-                        'observaciones_toga',
-                        $producto->toga->observaciones
-                    ),
+                        'observaciones' => $request->input(
+                            'observaciones_toga',
+                            $producto->toga->observaciones ?? null
+                        ),
 
-                ]);
+                    ]
+                );
 
             }
 
@@ -501,17 +505,14 @@ class WebController extends Controller
 
             if ($producto->tipo_producto === 'CAPA') {
 
-                $producto->capa()->updateOrCreate(
-
-                    [
-                        'producto_id' => $producto->id
-                    ],
-
+                $this->guardarDetalle(
+                    'capa',
+                    $producto,
                     [
 
                         'talla' => $request->input(
                             'talla_capa',
-                            $producto->capa->talla ?? 'No especificado'
+                            $producto->capa->talla ?? null
                         ),
 
                         'carrera' => $request->input(
@@ -526,7 +527,7 @@ class WebController extends Controller
 
                         'color' => $request->input(
                             'color_capa',
-                            $producto->capa->color ?? 'No especificado'
+                            $producto->capa->color ?? null
                         ),
 
                         'observaciones' => $request->input(
@@ -535,7 +536,6 @@ class WebController extends Controller
                         ),
 
                     ]
-
                 );
 
             }
@@ -546,16 +546,37 @@ class WebController extends Controller
             |--------------------------------------------------------------------------
             */
 
-            if ($producto->tipo_producto === 'BIRRETE' && $producto->birrete) {
+            if ($producto->tipo_producto === 'BIRRETE') {
 
-                $producto->birrete->update([
+                $this->guardarDetalle(
+                    'birrete',
+                    $producto,
+                    [
 
-                    'tipo_birrete' => $request->input(
-                        'tipo_birrete',
-                        $producto->birrete->tipo_birrete
-                    ),
+                        'tipo_birrete' => $request->input(
+                            'tipo_birrete',
+                            $producto->birrete->tipo_birrete ?? 'ESTANDAR'
+                        ),
 
-                ]);
+                        'color' => $request->input(
+                            'color_birrete',
+                            $producto->birrete->color ?? null
+                        ),
+
+                        'carrera' => $request->tipo_birrete === 'UNIVERSITARIO'
+                            ? $request->carrera_birrete
+                            : null,
+
+                        'tiene_borlas_extra' => $request->tipo_birrete === 'NORMAL'
+                            ? $request->boolean('tiene_borlas_extra')
+                            : false,
+
+                        'descripcion_borlas_extra' => $request->tipo_birrete === 'NORMAL'
+                            ? $request->descripcion_borlas_extra
+                            : null,
+
+                    ]
+                );
 
             }
 
@@ -565,28 +586,37 @@ class WebController extends Controller
             |--------------------------------------------------------------------------
             */
 
-            if ($producto->tipo_producto === 'COLLARIN' && $producto->collarin) {
+            if ($producto->tipo_producto === 'COLLARIN') {
 
-                $producto->collarin->update([
+                $this->guardarDetalle(
+                    'collarin',
+                    $producto,
+                    [
 
-                    'tipo_collarin' => $request->input(
-                        'tipo_collarin',
-                        $producto->collarin->tipo_collarin
-                    ),
+                        'tipo_collarin' => $request->input(
+                            'tipo_collarin',
+                            $producto->collarin->tipo_collarin ?? 'NORMAL'
+                        ),
 
-                    'codigo_color' => $request->tipo_collarin === 'NORMAL'
-                        ? $request->codigo_color_collarin
-                        : null,
+                        'carrera' => $request->input(
+                            'carrera_collarin',
+                            $producto->collarin->carrera ?? null
+                        ),
 
-                    'color' => $request->tipo_collarin === 'NORMAL'
-                        ? $request->color_collarin
-                        : null,
+                        'codigo_color' => $request->tipo_collarin === 'NORMAL'
+                            ? $request->codigo_color_collarin
+                            : null,
 
-                    'tamano' => $request->tipo_collarin === 'UNIVERSITARIO'
-                        ? $request->tamano_collarin
-                        : null,
+                        'color' => $request->tipo_collarin === 'NORMAL'
+                            ? $request->color_collarin
+                            : null,
 
-                ]);
+                        'tamano' => $request->tipo_collarin === 'UNIVERSITARIO'
+                            ? $request->tamano_collarin
+                            : null,
+
+                    ]
+                );
 
             }
 
@@ -598,12 +628,9 @@ class WebController extends Controller
 
             if ($producto->tipo_producto === 'BORLA') {
 
-                $producto->borla()->updateOrCreate(
-
-                    [
-                        'producto_id' => $producto->id
-                    ],
-
+                $this->guardarDetalle(
+                    'borla',
+                    $producto,
                     [
 
                         'codigo_color' => $request->input(
@@ -613,7 +640,7 @@ class WebController extends Controller
 
                         'color' => $request->input(
                             'borla_color',
-                            $producto->borla->color ?? 'No especificado'
+                            $producto->borla->color ?? null
                         ),
 
                         'observaciones' => $request->input(
@@ -622,7 +649,6 @@ class WebController extends Controller
                         ),
 
                     ]
-
                 );
 
             }
@@ -635,6 +661,24 @@ class WebController extends Controller
                 'success',
                 'Producto actualizado correctamente.'
             );
+    }
+
+    /**
+     * Crea o actualiza el registro detalle de un producto.
+     */
+    private function guardarDetalle(
+        string $relacion,
+        Producto $producto,
+        array $datos
+    ): void {
+
+        $producto->{$relacion}()->updateOrCreate(
+            [
+                'producto_id' => $producto->id
+            ],
+            $datos
+        );
+
     }
 
     public function desactivarProducto($id)

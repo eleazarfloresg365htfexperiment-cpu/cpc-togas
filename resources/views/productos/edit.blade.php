@@ -270,7 +270,7 @@
 
                             </div>
 
-                            <div class="col-md-6">
+                            <div class="col-md-6" id="grupo-codigo-color-capa">
                                 <label class="form-label">Código de color</label>
 
                                 <input
@@ -281,7 +281,7 @@
                                 >
                             </div>
 
-                            <div class="col-md-6">
+                            <div class="col-md-6" id="grupo-color-capa">
 
                                 <label class="form-label">
                                     Color
@@ -297,7 +297,7 @@
 
                             </div>
 
-                            <div class="col-md-6">
+                            <div class="col-md-6" id="grupo-carrera-capa">
                                 <label class="form-label">Carrera</label>
 
                                 <select
@@ -378,7 +378,7 @@
                                     required>
                             </div>
 
-                            <div class="col-md-4">
+                            <div class="col-md-4" id="grupo-carrera-birrete">
                                 <label class="form-label">Carrera / área</label>
                                 <select name="carrera_birrete" class="form-select">
                                     <option value="">Sin carrera específica</option>
@@ -401,7 +401,7 @@
                                 </select>
                             </div>
 
-                            <div class="col-md-6">
+                            <div class="col-md-6" id="grupo-borla-birrete">
                                 <label for="tiene_borlas_extra" class="form-label">Borlas extra</label>
                                 <select name="tiene_borlas_extra" id="tiene_borlas_extra" class="form-select">
                                     <option value="0" {{ old('tiene_borlas_extra', $detalleBirrete->tiene_borlas_extra ?? 0) == 0 ? 'selected' : '' }}>
@@ -413,7 +413,7 @@
                                 </select>
                             </div>
 
-                            <div class="col-md-12">
+                            <div class="col-md-12" id="grupo-descripcion-borla">
                                 <label for="descripcion_borlas_extra" class="form-label">Descripción de borlas extra</label>
                                 <textarea name="descripcion_borlas_extra"
                                           id="descripcion_borlas_extra"
@@ -477,7 +477,7 @@
 
                             </div>
 
-                            <div class="col-md-4">
+                            <div class="col-md-4" id="grupo-codigo-color-collarin">
                                 <label class="form-label">Código de color</label>
 
                                 <input
@@ -487,24 +487,37 @@
                                     value="{{ old('codigo_color_collarin', $detalleCollarin->codigo_color ?? '') }}">
                             </div>
 
-                            <div class="col-md-4">
+                            <div class="col-md-4" id="grupo-color-collarin">
                                 <label for="color_collarin" class="form-label">Color</label>
+
                                 <input
                                     type="text"
                                     name="color_collarin"
+                                    id="color_collarin"
                                     class="form-control"
                                     value="{{ old('color_collarin', $detalleCollarin->color ?? '') }}">
                             </div>
 
-                            <div class="col-md-4">
-                                <label for="tamano" class="form-label">Tamaño</label>
-                                <select name="tamano_collarin" id="tamano_collarin" class="form-select" required>
-                                    <option value="PEQUENO" {{ old('tamano_collarin', $detalleCollarin->tamano ?? '') === 'PEQUENO' ? 'selected' : '' }}>
+                            <div class="col-md-4" id="grupo-tamano-collarin">
+                                <label for="tamano_collarin" class="form-label">
+                                    Tamaño
+                                </label>
+
+                                <select
+                                    name="tamano_collarin"
+                                    id="tamano_collarin"
+                                    class="form-select">
+
+                                    <option value="PEQUENO"
+                                        {{ old('tamano_collarin', $detalleCollarin->tamano ?? '') == 'PEQUENO' ? 'selected' : '' }}>
                                         Pequeño
                                     </option>
-                                    <option value="GRANDE" {{ old('tamano_collarin', $detalleCollarin->tamano ?? '') === 'GRANDE' ? 'selected' : '' }}>
+
+                                    <option value="GRANDE"
+                                        {{ old('tamano_collarin', $detalleCollarin->tamano ?? '') == 'GRANDE' ? 'selected' : '' }}>
                                         Grande
                                     </option>
+
                                 </select>
                             </div>
 
@@ -522,7 +535,7 @@
                         <div class="card-body">
                             <div class="row g-3">
 
-                                <div class="col-md-6">
+                                <div class="col-md-6" id="grupo-color-borla">
                                     <label class="form-label">Color de borla</label>
                                     <input
                                         type="text"
@@ -532,7 +545,7 @@
                                     >
                                 </div>
 
-                                <div class="col-md-6">
+                                <div class="col-md-6" id="grupo-codigo-color-borla">
                                     <label class="form-label">
                                         Código de color
                                     </label>
@@ -544,7 +557,7 @@
                                         value="{{ old('borla_codigo_color', $detalleBorla->codigo_color ?? '') }}">
                                 </div>
 
-                                <div class="col-md-12">
+                                <div class="col-md-12" id="grupo-observaciones-borla">
                                     <label class="form-label">Observaciones de borla</label>
                                     <textarea
                                         name="borla_observaciones"
@@ -583,8 +596,14 @@
 
 </div>
 
+@push('scripts')
+
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+
+    // ============================================
+    // CONFIGURACIÓN AUTOMÁTICA POR CARRERA
+    // ============================================
 
     const carreras = {
         ADMINISTRACION: {
@@ -613,30 +632,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    function actualizarCampos(config){
+    function actualizarCampos(config) {
 
         const carrera = document.querySelector(config.carrera);
-        if(!carrera) return;
+
+        if (!carrera) return;
 
         const codigo = document.querySelector(config.codigo);
-        const color  = document.querySelector(config.color);
+        const color = document.querySelector(config.color);
 
-        function actualizar(){
+        function actualizar() {
 
             const datos = carreras[carrera.value];
 
-            if(!datos){
-                return;
-            }
+            if (!datos) return;
 
-            if(codigo){
+            if (codigo) {
                 codigo.value = datos.codigo;
             }
 
-            if(color){
+            if (color) {
                 color.value = datos.color;
             }
-
         }
 
         carrera.addEventListener('change', actualizar);
@@ -644,18 +661,55 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     actualizarCampos({
-        carrera:'select[name="carrera_capa"]',
-        codigo:'input[name="codigo_color_capa"]',
-        color:'input[name="color_capa"]'
+        carrera: 'select[name="carrera_capa"]',
+        codigo: 'input[name="codigo_color_capa"]',
+        color: 'input[name="color_capa"]'
     });
 
     actualizarCampos({
-        carrera:'select[name="carrera_collarin"]',
-        codigo:'input[name="codigo_color_collarin"]',
-        color:'input[name="color_collarin"]'
+        carrera: 'select[name="carrera_collarin"]',
+        codigo: 'input[name="codigo_color_collarin"]',
+        color: 'input[name="color_collarin"]'
     });
+
+
+    // ============================================
+    // COLLARÍN NORMAL / UNIVERSITARIO
+    // ============================================
+
+    const tipo = document.getElementById('tipo_collarin');
+
+    if (tipo) {
+
+        const grupoCodigo = document.getElementById('grupo-codigo-color-collarin');
+        const grupoColor  = document.getElementById('grupo-color-collarin');
+        const grupoTamano = document.getElementById('grupo-tamano-collarin');
+
+        function actualizarVistaCollarin() {
+
+            if (tipo.value === 'NORMAL') {
+
+                if (grupoCodigo) grupoCodigo.style.display = '';
+                if (grupoColor) grupoColor.style.display = '';
+                if (grupoTamano) grupoTamano.style.display = 'none';
+
+            } else {
+
+                if (grupoCodigo) grupoCodigo.style.display = 'none';
+                if (grupoColor) grupoColor.style.display = 'none';
+                if (grupoTamano) grupoTamano.style.display = '';
+
+            }
+        }
+
+        tipo.addEventListener('change', actualizarVistaCollarin);
+
+        actualizarVistaCollarin();
+    }
 
 });
 </script>
+
+@endpush
 
 @endsection
