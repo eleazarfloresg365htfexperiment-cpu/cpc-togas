@@ -263,10 +263,6 @@
                             <select name="tipo_birrete" class="form-select">
                                 <option value="">Selecciona tipo...</option>
 
-                                <option value="ESTANDAR" {{ old('tipo_birrete') === 'ESTANDAR' ? 'selected' : '' }}>
-                                    Estándar
-                                </option>
-
                                 <option value="NORMAL" {{ old('tipo_birrete') === 'NORMAL' ? 'selected' : '' }}>
                                     Normal
                                 </option>

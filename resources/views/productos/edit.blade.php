@@ -378,50 +378,6 @@
                                     required>
                             </div>
 
-                            <div class="col-md-4" id="grupo-carrera-birrete">
-                                <label class="form-label">Carrera / área</label>
-                                <select name="carrera_birrete" class="form-select">
-                                    <option value="">Sin carrera específica</option>
-
-                                    <option value="ADMINISTRACION" {{ old('carrera_birrete', $detalleBirrete->carrera ?? '') === 'ADMINISTRACION' ? 'selected' : '' }}>
-                                        Administración
-                                    </option>
-
-                                    <option value="AGRONOMIA" {{ old('carrera_birrete', $detalleBirrete->carrera ?? '') === 'AGRONOMIA' ? 'selected' : '' }}>
-                                        Agronomía
-                                    </option>
-
-                                    <option value="DERECHO" {{ old('carrera_birrete', $detalleBirrete->carrera ?? '') === 'DERECHO' ? 'selected' : '' }}>
-                                        Derecho
-                                    </option>
-
-                                    <option value="PEDAGOGIA" {{ old('carrera_birrete', $detalleBirrete->carrera ?? '') === 'PEDAGOGIA' ? 'selected' : '' }}>
-                                        Pedagogía
-                                    </option>
-                                </select>
-                            </div>
-
-                            <div class="col-md-6" id="grupo-borla-birrete">
-                                <label for="tiene_borlas_extra" class="form-label">Borlas extra</label>
-                                <select name="tiene_borlas_extra" id="tiene_borlas_extra" class="form-select">
-                                    <option value="0" {{ old('tiene_borlas_extra', $detalleBirrete->tiene_borlas_extra ?? 0) == 0 ? 'selected' : '' }}>
-                                        No
-                                    </option>
-                                    <option value="1" {{ old('tiene_borlas_extra', $detalleBirrete->tiene_borlas_extra ?? 0) == 1 ? 'selected' : '' }}>
-                                        Sí
-                                    </option>
-                                </select>
-                            </div>
-
-                            <div class="col-md-12" id="grupo-descripcion-borla">
-                                <label for="descripcion_borlas_extra" class="form-label">Descripción de borlas extra</label>
-                                <textarea name="descripcion_borlas_extra"
-                                          id="descripcion_borlas_extra"
-                                          rows="3"
-                                          class="form-control"
-                                          placeholder="Ej: Incluye borla adicional para Derecho...">{{ old('descripcion_borlas_extra', $detalleBirrete->descripcion_borlas_extra ?? '') }}</textarea>
-                            </div>
-
                         </div>
                     </div>
                 @endif
@@ -442,39 +398,6 @@
                                         Universitario
                                     </option>
                                 </select>
-                            </div>
-
-                            <div class="col-md-4">
-
-                                <label class="form-label">
-                                    Carrera
-                                </label>
-
-                                <select
-                                    name="carrera_collarin"
-                                    class="form-select">
-
-                                    <option value="">Seleccione...</option>
-
-                                    @foreach([
-                                        'ADMINISTRACION'=>'Administración',
-                                        'AGRONOMIA'=>'Agronomía',
-                                        'DERECHO'=>'Derecho',
-                                        'PEDAGOGIA'=>'Pedagogía',
-                                        'MEDICINA'=>'Medicina',
-                                        'CIENCIAS_ECONOMICAS'=>'Ciencias Económicas'
-                                    ] as $valor=>$texto)
-
-                                        <option
-                                            value="{{ $valor }}"
-                                            {{ old('carrera_collarin', $detalleCollarin->carrera ?? '') == $valor ? 'selected' : '' }}>
-                                            {{ $texto }}
-                                        </option>
-
-                                    @endforeach
-
-                                </select>
-
                             </div>
 
                             <div class="col-md-4" id="grupo-codigo-color-collarin">
@@ -606,10 +529,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // ============================================
 
     const carreras = {
-        ADMINISTRACION: {
-            color: "Azul Marino",
-            codigo: "ADM"
-        },
         AGRONOMIA: {
             color: "Verde",
             codigo: "AGR"
@@ -623,11 +542,11 @@ document.addEventListener('DOMContentLoaded', () => {
             codigo: "PED"
         },
         MEDICINA: {
-            color: "Morado",
+            color: "Amarillo",
             codigo: "MED"
         },
         CIENCIAS_ECONOMICAS: {
-            color: "Dorado",
+            color: "Naranja",
             codigo: "ECO"
         }
     };
@@ -667,7 +586,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     actualizarCampos({
-        carrera: 'select[name="carrera_collarin"]',
         codigo: 'input[name="codigo_color_collarin"]',
         color: 'input[name="color_collarin"]'
     });
