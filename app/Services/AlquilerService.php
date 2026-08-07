@@ -13,10 +13,13 @@ class AlquilerService
 {
     public function __construct(
         protected InventarioService $inventarioService,
-        protected ReciboService $reciboService
+        protected ReciboService $reciboService,
+        protected AlquilerRulesService $rulesService,
+        protected DiscountCalculator $discountCalculator,
+        protected FabricacionService $fabricacionService
     ) {}
 
-        public function crearAlquiler(
+    public function crearAlquiler(
         int $clienteId,
         array $productos,
         float $descuento = 0,
@@ -24,7 +27,8 @@ class AlquilerService
         ?string $fechaEntrega = null,
         ?string $fechaDevolucionProgramada = null,
         ?string $observaciones = null,
-        ?int $usuarioId = null
+        ?int $usuarioId = null,
+        array $fabricacionData = []
     ): Alquiler {
         return DB::transaction(function () use (
             $clienteId,
@@ -34,15 +38,10 @@ class AlquilerService
             $fechaEntrega,
             $fechaDevolucionProgramada,
             $observaciones,
-            $usuarioId
+            $usuarioId,
+            $fabricacionData
         ) {
-            if (empty($productos)) {
-                throw new Exception('Debe agregar al menos un producto al alquiler.');
-            }
-
-            if ($descuento < 0) {
-                throw new Exception('El descuento no puede ser negativo.');
-            }
+            $items = $this->rulesService->prepararItems($productos);
 
             if (!$fechaAlquiler) {
                 $fechaAlquiler = now()->toDateString();
@@ -57,90 +56,25 @@ class AlquilerService
             }
 
             $subtotal = 0;
-            $productosPreparados = [];
 
-            foreach ($productos as $item) {
-                if (!isset($item['producto_id']) || !isset($item['cantidad'])) {
-                    throw new Exception('Cada producto debe incluir producto_id y cantidad.');
-                }
-
-                $producto = Producto::lockForUpdate()->findOrFail($item['producto_id']);
-                $cantidad = (int) $item['cantidad'];
-
-                if ($cantidad <= 0) {
-                    throw new Exception('La cantidad de cada producto debe ser mayor a cero.');
-                }
-
-                if (!$producto->activo) {
-                    throw new Exception("El producto {$producto->nombre} está inactivo.");
-                }
-
-                if ($producto->stock_disponible < $cantidad) {
-                    throw new Exception("No hay suficiente stock disponible para {$producto->nombre}.");
-                }
-
-                $precioUnitario = (float) $producto->precio_alquiler;
-                $subtotalDetalle = $precioUnitario * $cantidad;
-
-                $accesoriosPreparados = [];
-                $subtotalAccesorios = 0;
-
-                foreach (($item['accesorios'] ?? []) as $accesorio) {
-                    if (!isset($accesorio['producto_id']) || !isset($accesorio['cantidad'])) {
-                        throw new Exception('Cada accesorio debe incluir producto_id y cantidad.');
-                    }
-
-                    $productoAccesorio = Producto::lockForUpdate()->findOrFail($accesorio['producto_id']);
-                    $cantidadAccesorio = (int) $accesorio['cantidad'];
-
-                    if ($cantidadAccesorio <= 0) {
-                        throw new Exception('La cantidad de cada accesorio debe ser mayor a cero.');
-                    }
-
-                    if (!$productoAccesorio->activo) {
-                        throw new Exception("El accesorio {$productoAccesorio->nombre} está inactivo.");
-                    }
-
-                    if ($productoAccesorio->stock_disponible < $cantidadAccesorio) {
-                        throw new Exception("No hay suficiente stock disponible para {$productoAccesorio->nombre}.");
-                    }
-
-                    $tipoCobro = $accesorio['tipo_cobro'] ?? 'INCLUIDO';
-                    $precioAccesorio = (float) ($accesorio['precio_unitario'] ?? 0);
-                    $totalAccesorio = $precioAccesorio * $cantidadAccesorio;
-
-                    if ($tipoCobro === 'EXTRA') {
-                        $subtotalAccesorios += $totalAccesorio;
-                    }
-
-                    $accesoriosPreparados[] = [
-                        'producto' => $productoAccesorio,
-                        'tipo_accesorio' => $accesorio['tipo_accesorio'],
-                        'tipo_cobro' => $tipoCobro,
-                        'cantidad' => $cantidadAccesorio,
-                        'precio_unitario' => $precioAccesorio,
-                        'total_linea' => $totalAccesorio,
-                    ];
-                }
-
-                $subtotal += $subtotalDetalle + $subtotalAccesorios;
-
-                $productosPreparados[] = [
-                    'producto' => $producto,
-                    'cantidad' => $cantidad,
-                    'precio_unitario' => $precioUnitario,
-                    'subtotal' => $subtotalDetalle,
-                    'accesorios' => $accesoriosPreparados,
-                ];
+            foreach ($items as $item) {
+                $subtotal += $item['subtotal'] + $item['subtotal_accesorios'];
             }
 
-            if ($descuento > $subtotal) {
-                throw new Exception('El descuento no puede ser mayor al subtotal.');
-            }
-
-            $total = $subtotal - $descuento;
+            $descuentoToga = $this->discountCalculator->calcularDescuentoPorTogas($items);
+            $descuentoTotal = round($descuento + $descuentoToga, 2);
+            $total = $this->discountCalculator->calcularTotal($subtotal, $descuento, $descuentoToga);
 
             $codigoRecibo = $this->reciboService->generarCodigoRecibo();
+
+            $tieneFabricacionPendiente = $this->hasPendingFabricacion($items);
+            $fabricacionAutorizada = !empty($fabricacionData);
+
+            if ($tieneFabricacionPendiente && !$fabricacionAutorizada) {
+                throw new Exception('Hay cantidades pendientes de fabricación. Activa la autorización de fabricación para crear este alquiler.');
+            }
+
+            $estado = $tieneFabricacionPendiente ? 'EN_FABRICACION' : 'RESERVADO';
 
             $alquiler = Alquiler::create([
                 'cliente_id' => $clienteId,
@@ -148,17 +82,19 @@ class AlquilerService
                 'fecha_alquiler' => $fechaAlquiler,
                 'fecha_entrega' => $fechaEntrega,
                 'fecha_devolucion_programada' => $fechaDevolucionProgramada,
-                'estado' => 'RESERVADO',
+                'estado' => $estado,
                 'estado_pago' => 'PENDIENTE',
                 'subtotal' => $subtotal,
-                'descuento' => $descuento,
+                'descuento' => $descuentoTotal,
+                'descuento_manual' => $descuento,
+                'descuento_toga' => $descuentoToga,
                 'total' => $total,
                 'saldo_pendiente' => $total,
                 'observaciones' => $observaciones,
                 'usuario_id' => $usuarioId,
             ]);
 
-            foreach ($productosPreparados as $item) {
+            foreach ($items as $item) {
                 $detalleCreado = AlquilerDetalle::create([
                     'alquiler_id' => $alquiler->id,
                     'producto_id' => $item['producto']->id,
@@ -169,7 +105,7 @@ class AlquilerService
                 ]);
 
                 foreach (($item['accesorios'] ?? []) as $accesorio) {
-                    AlquilerDetalleAccesorio::create([
+                    $detalleAccesorio = AlquilerDetalleAccesorio::create([
                         'alquiler_detalle_id' => $detalleCreado->id,
                         'producto_id' => $accesorio['producto']->id,
                         'tipo_accesorio' => $accesorio['tipo_accesorio'],
@@ -178,6 +114,36 @@ class AlquilerService
                         'precio_unitario' => $accesorio['precio_unitario'],
                         'total_linea' => $accesorio['total_linea'],
                     ]);
+
+                    if (!empty($accesorio['cantidad_pendiente'])) {
+                        $this->fabricacionService->registrarFabricacionPendiente(
+                            $alquiler->id,
+                            $detalleAccesorio->id,
+                            $accesorio['producto']->id,
+                            $accesorio['cantidad'],
+                            $accesorio['cantidad_pendiente'],
+                            $fabricacionData['responsable'] ?? null,
+                            $fabricacionData['motivo'] ?? null,
+                            $fabricacionData['observaciones'] ?? null,
+                            $fabricacionData['usuario_id'] ?? $usuarioId,
+                            $fabricacionData['fecha'] ?? null
+                        );
+                    }
+                }
+
+                if (!empty($item['cantidad_pendiente'])) {
+                    $this->fabricacionService->registrarFabricacionPendiente(
+                        $alquiler->id,
+                        $detalleCreado->id,
+                        $item['producto']->id,
+                        $item['cantidad'],
+                        $item['cantidad_pendiente'],
+                        $fabricacionData['responsable'] ?? null,
+                        $fabricacionData['motivo'] ?? null,
+                        $fabricacionData['observaciones'] ?? null,
+                        $fabricacionData['usuario_id'] ?? $usuarioId,
+                        $fabricacionData['fecha'] ?? null
+                    );
                 }
             }
 
@@ -185,14 +151,35 @@ class AlquilerService
         });
     }
 
+    protected function hasPendingFabricacion(array $items): bool
+    {
+        foreach ($items as $item) {
+            if (!empty($item['cantidad_pendiente'])) {
+                return true;
+            }
+
+            foreach ($item['accesorios'] as $accesorio) {
+                if (!empty($accesorio['cantidad_pendiente'])) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     public function entregarAlquiler(
         int $alquilerId,
         ?int $usuarioId = null
     ): Alquiler {
         return DB::transaction(function () use ($alquilerId, $usuarioId) {
-            $alquiler = Alquiler::with(['detalles.producto', 'detalles.accesorios.producto'])
+            $alquiler = Alquiler::with(['detalles.producto', 'detalles.accesorios.producto', 'fabricaciones'])
                 ->lockForUpdate()
                 ->findOrFail($alquilerId);
+
+            if ($alquiler->fabricaciones()->where('cantidad_pendiente', '>', 0)->exists()) {
+                throw new Exception('No se puede entregar el alquiler mientras haya cantidades pendientes de fabricación.');
+            }
 
             if ($alquiler->estado === 'ENTREGADO') {
                 throw new Exception('Este alquiler ya fue entregado.');

@@ -35,6 +35,7 @@ class ProductoSeeder extends Seeder
 
         ProductoToga::create([
             'producto_id' => $togaS->id,
+            'tipo_toga' => 'ESTANDAR',
             'talla' => 'S',
             'color' => 'Negro',
             'observaciones' => 'Toga pequeña para estudiantes de baja estatura.',
@@ -54,6 +55,7 @@ class ProductoSeeder extends Seeder
 
         ProductoToga::create([
             'producto_id' => $togaM->id,
+            'tipo_toga' => 'ESTANDAR',
             'talla' => 'M',
             'color' => 'Negro',
             'observaciones' => 'Toga estándar para estudiantes.',
@@ -73,6 +75,7 @@ class ProductoSeeder extends Seeder
 
         ProductoToga::create([
             'producto_id' => $togaL->id,
+            'tipo_toga' => 'ESTANDAR',
             'talla' => 'L',
             'color' => 'Negro',
             'observaciones' => 'Toga grande para estudiantes altos.',

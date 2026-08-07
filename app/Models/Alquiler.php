@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Models\Cliente;
 use App\Models\AlquilerDetalle;
+use App\Models\AlquilerFabricacion;
 
 class Alquiler extends Model
 {
@@ -65,6 +66,8 @@ class Alquiler extends Model
 
         'subtotal' => 'decimal:2',
         'descuento' => 'decimal:2',
+        'descuento_manual' => 'decimal:2',
+        'descuento_toga' => 'decimal:2',
         'total' => 'decimal:2',
         'monto_mora_calculado' => 'decimal:2',
         'descuento_mora' => 'decimal:2',
@@ -82,6 +85,11 @@ class Alquiler extends Model
         return $this->hasMany(AlquilerDetalle::class, 'alquiler_id');
     }
 
+    public function fabricaciones()
+    {
+        return $this->hasMany(AlquilerFabricacion::class, 'alquiler_id');
+    }
+
     public function pagos()
     {
         return $this->hasMany(Pago::class, 'alquiler_id');
@@ -90,5 +98,21 @@ class Alquiler extends Model
     public function usuario()
     {
         return $this->belongsTo(User::class, 'usuario_id');
+    }
+
+    public function canTransitionTo(string $estado): bool
+    {
+        $states = config('alquiler.states', []);
+
+        if (!isset($states[$this->estado])) {
+            return false;
+        }
+
+        return in_array($estado, $states[$this->estado]['next'] ?? [], true);
+    }
+
+    public function isEntregable(): bool
+    {
+        return $this->estado === 'LISTO_PARA_ENTREGA' || $this->estado === 'RESERVADO';
     }
 }

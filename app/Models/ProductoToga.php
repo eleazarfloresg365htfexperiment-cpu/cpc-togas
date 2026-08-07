@@ -13,6 +13,7 @@ class ProductoToga extends Model
 
     protected $fillable = [
         'producto_id',
+        'tipo_toga',
         'talla',
         'color',
         'observaciones',

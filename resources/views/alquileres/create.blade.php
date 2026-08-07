@@ -52,7 +52,8 @@
 
             <div class="alert alert-warning rounded-4 mb-0">
                 <strong>Importante:</strong><br>
-                Solo aparecerán clientes y productos activos.
+                Solo aparecerán clientes y productos activos.<br>
+                Si algún producto falta en stock, activa la fabricación para registrar cantidades pendientes.
             </div>
 
         </div>
@@ -84,6 +85,7 @@
                   data-cancel="Cancelar">
 
                 @csrf
+                <input type="hidden" name="fabricacion_autorizada" id="fabricacion_autorizada_hidden" value="{{ old('fabricacion_autorizada', 0) }}">
 
                 <div class="row g-3">
 
@@ -208,39 +210,68 @@
                     </div>
 
                     <div class="col-md-12">
-                        <label for="observaciones" class="form-label">Observaciones</label>
-                        <textarea name="observaciones"
-                                  id="observaciones"
-                                  rows="3"
-                                  class="form-control"
-                                  placeholder="Ej: Entrega para graduación, cliente pagará al retirar, observaciones especiales...">{{ old('observaciones') }}</textarea>
-                    </div>
+                        <div class="card border-0 shadow-sm rounded-4 mb-3 d-none" id="fabricacion_meta_panel">
+                            <div class="card-body p-3">
+                                <div class="fw-semibold mb-3">Autorizar fabricación</div>
+                                <p class="text-muted mb-3">
+                                    Completa esta información solo si alguna toga requiere fabricación porque la cantidad solicitada excede el stock disponible.
+                                </p>
 
-                </div>
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <label for="fabricacion_responsable" class="form-label">Responsable</label>
+                                        <input
+                                            type="text"
+                                            name="fabricacion_responsable"
+                                            id="fabricacion_responsable"
+                                            class="form-control"
+                                            value="{{ old('fabricacion_responsable') }}"
+                                            placeholder="Nombre del responsable">
+                                    </div>
 
-                <div class="card mb-4">
-                    <div class="card-header fw-bold">
-                        Datos para carta de compromiso
-                    </div>
+                                    <div class="col-md-4">
+                                        <label for="fabricacion_motivo" class="form-label">Motivo</label>
+                                        <input
+                                            type="text"
+                                            name="fabricacion_motivo"
+                                            id="fabricacion_motivo"
+                                            class="form-control"
+                                            value="{{ old('fabricacion_motivo') }}"
+                                            placeholder="Ej. falta de stock">
+                                    </div>
 
-                    <div class="card-body">
-                        <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <label for="fabricacion_observaciones" class="form-label">Observaciones</label>
+                                        <input
+                                            type="text"
+                                            name="fabricacion_observaciones"
+                                            id="fabricacion_observaciones"
+                                            class="form-control"
+                                            value="{{ old('fabricacion_observaciones') }}"
+                                            placeholder="Opcional">
+                                    </div>
+                                </div>
 
-                            <div class="col-md-6">
-                                <label for="institucion_representada" class="form-label">
-                                    Institución representada
-                                </label>
-                                <input
-                                    type="text"
-                                    name="institucion_representada"
-                                    id="institucion_representada"
-                                    class="form-control"
-                                    value="{{ old('institucion_representada') }}"
-                                    placeholder="Ej. Centro Profesional de Cómputo CPC"
-                                >
+                                <div class="alert alert-info rounded-4 mt-3 mb-0">
+                                    Si alguna toga falta en stock, habilita la autorización en el panel de esa toga para registrar la diferencia como fabricación pendiente.
+                                </div>
                             </div>
+                        </div>
+                    </div>
 
-                            <div class="col-md-6">
+                    <div class="col-md-12">
+                        <label for="institucion_representada" class="form-label">Institución representada</label>
+                        <input
+                            type="text"
+                            name="institucion_representada"
+                            id="institucion_representada"
+                            class="form-control"
+                            value="{{ old('institucion_representada') }}"
+                            placeholder="Ej. Centro Profesional de Cómputo CPC"
+                        >
+                    </div>
+
+                    <div class="col-md-6">
                                 <label for="representante_alquiler" class="form-label">
                                     Representante o encargado del alquiler
                                 </label>
@@ -300,7 +331,8 @@
                                 <div
                                     class="border rounded-4 p-3 mb-3 toga-item"
                                     id="toga_item_{{ $toga->id }}"
-                                    data-tipo="{{ $toga->toga->tipo_toga }}"
+                                    data-tipo="{{ $toga->toga->tipo_toga ?? 'ESTANDAR' }}"
+                                    data-stock="{{ $toga->stock_disponible }}"
                                 >
 
                                     <div class="row g-3 align-items-center">
@@ -314,6 +346,7 @@
                                                     name="productos[{{ $toga->id }}][seleccionado]"
                                                     value="1"
                                                     data-producto="{{ $toga->id }}"
+                                                    data-producto-id="{{ $toga->id }}"
                                                     {{ old("productos.$toga->id.seleccionado") ? 'checked' : '' }}
                                                 >
                                             </div>
@@ -350,20 +383,51 @@
                                                 class="form-control cantidad-input"
                                                 name="productos[{{ $toga->id }}][cantidad]"
                                                 id="cantidad_{{ $toga->id }}"
+                                                data-producto-id="{{ $toga->id }}"
                                                 value="{{ old("productos.$toga->id.cantidad") }}"
                                                 min="1"
-                                                max="{{ $toga->stock_disponible }}"
                                                 placeholder="0"
                                                 disabled
                                             >
                                         </div>
 
-                                        <div class="col-md-4">
-                                            <div
-                                                class="resumen-configuracion small text-muted d-none mb-2"
-                                                id="resumen_{{ $toga->id }}"
-                                            >
-                                                Togas: 0 | Birrete: No | Extras: 0
+                                        <div class="col-md-4 col-10">
+                                            <div class="form-check mb-3 d-none" id="fabricacion_notice_{{ $toga->id }}">
+                                                <input
+                                                    type="checkbox"
+                                                    class="form-check-input producto-fabricacion-checkbox"
+                                                    id="fabricacion_producto_{{ $toga->id }}"
+                                                    name="productos[{{ $toga->id }}][fabricacion_autorizada]"
+                                                    value="1"
+                                                    data-producto="{{ $toga->id }}"
+                                                    {{ old("productos.$toga->id.fabricacion_autorizada") ? 'checked' : '' }}
+                                                >
+                                                <label class="form-check-label fw-semibold" for="fabricacion_producto_{{ $toga->id }}">
+                                                    Autorizar fabricación para esta toga si el stock no alcanza
+                                                </label>
+                                            </div>
+
+                                            <div class="alert alert-warning rounded-4 mb-3 d-none" id="stock_alert_{{ $toga->id }}">
+                                                <div class="fw-semibold mb-1">
+                                                    La cantidad solicitada excede el stock disponible.
+                                                </div>
+                                                <div>
+                                                    Solicitaste más de {{ $toga->stock_disponible }} unidades. Si deseas continuar, activa la autorización de fabricación.
+                                                </div>
+                                                <div class="mt-2 d-flex gap-2 flex-wrap">
+                                                    <button type="button"
+                                                            class="btn btn-sm btn-outline-secondary btn-reset-stock"
+                                                            data-producto="{{ $toga->id }}"
+                                                            data-stock="{{ $toga->stock_disponible }}">
+                                                        Cancelar
+                                                    </button>
+
+                                                    <button type="button"
+                                                            class="btn btn-sm btn-primary btn-authorize-fabricacion"
+                                                            data-producto="{{ $toga->id }}">
+                                                        Ignorar límite y autorizar fabricación
+                                                    </button>
+                                                </div>
                                             </div>
 
                                             <button
@@ -402,9 +466,12 @@
                                                     @foreach($collarines as $collarin)
                                                         <option
                                                             value="{{ $collarin->id }}"
+                                                            data-tipo="{{ $collarin->collarin->tipo_collarin }}"
+                                                            data-color="{{ $collarin->collarin->color }}"
                                                             {{ old("productos.$toga->id.collarin_id") == $collarin->id ? 'selected' : '' }}
                                                         >
                                                             {{ $collarin->nombre }}
+                                                            ({{ $collarin->collarin->tipo_collarin }} - {{ $collarin->collarin->color ?? 'Sin color' }})
                                                             - Disp: {{ $collarin->stock_disponible }}
                                                         </option>
                                                     @endforeach
@@ -474,9 +541,11 @@
                                                     @foreach($birretes as $birrete)
                                                         <option
                                                             value="{{ $birrete->id }}"
+                                                            data-tipo="{{ $birrete->birrete->tipo_birrete }}"
                                                             {{ old("productos.$toga->id.birrete_id") == $birrete->id ? 'selected' : '' }}
                                                         >
                                                             {{ $birrete->nombre }}
+                                                            ({{ $birrete->birrete->tipo_birrete }})
                                                             - Disp: {{ $birrete->stock_disponible }}
                                                         </option>
                                                     @endforeach
@@ -512,6 +581,7 @@
                                                     @foreach($borlas as $borla)
                                                         <option
                                                             value="{{ $borla->id }}"
+                                                            data-color="{{ $borla->borla->color ?? '' }}"
                                                             {{ old("productos.$toga->id.borla_id") == $borla->id ? 'selected' : '' }}
                                                         >
                                                             {{ $borla->nombre }}
@@ -651,7 +721,7 @@
         const checks = document.querySelectorAll('.producto-check');
 
         checks.forEach(function (check) {
-            const productoId = check.dataset.productoId;
+            const productoId = check.dataset.producto || check.dataset.productoId;
             const cantidadInput = document.querySelector('.cantidad-input[data-producto-id="' + productoId + '"]');
 
             function actualizarEstado() {
@@ -670,6 +740,7 @@
             check.addEventListener('change', actualizarEstado);
             actualizarEstado();
         });
+
     });
 </script>
 
@@ -722,20 +793,22 @@
             const birreteCheck = document.getElementById('birrete_incluido_' + productoId);
             const borlaCheck = document.getElementById('borla_incluida_' + productoId);
 
-            [birreteCheck, borlaCheck].forEach(function (check) {
-                if (!check) return;
+            if (birreteCheck) {
+                const borlaContainer = document.getElementById('borla_incluida_' + productoId)?.closest('.form-check');
 
-                const target = document.getElementById(check.dataset.target);
-
-                if (target) {
-                    target.disabled = !check.checked || check.disabled;
-                    target.required = check.checked && !check.disabled;
-
-                    if (!check.checked || check.disabled) {
-                        target.value = '';
-                    }
+                if (borlaContainer) {
+                    borlaContainer.style.opacity = birreteCheck.checked ? '' : '0.5';
                 }
-            });
+
+                if (!birreteCheck.checked) {
+                    if (borlaCheck) {
+                        borlaCheck.checked = false;
+                        borlaCheck.disabled = true;
+                    }
+                } else if (borlaCheck) {
+                    borlaCheck.disabled = false;
+                }
+            }
 
             actualizarResumen(productoId);
         }
@@ -800,6 +873,31 @@
                 }
             }
 
+            if (collarin) {
+                const opciones = Array.from(collarin.options);
+
+                opciones.forEach(function (opcion) {
+                    if (!opcion.value) {
+                        return;
+                    }
+
+                    const tipoCollarin = opcion.dataset.tipo;
+
+                    if (tipoToga === 'ESTANDAR') {
+                        opcion.hidden = tipoCollarin !== 'NORMAL';
+                    } else {
+                        opcion.hidden = false;
+                    }
+                });
+
+                if (collarin.value) {
+                    const selectedOption = collarin.selectedOptions[0];
+                    if (selectedOption && selectedOption.hidden) {
+                        collarin.value = '';
+                    }
+                }
+            }
+
             inputsConfiguracion.forEach(function (input) {
                 if (input.id === 'collarin_' + productoId) return;
 
@@ -827,8 +925,69 @@
                 panel.classList.add('d-none');
             }
 
+            actualizarBorlaIncluidaSegunCapa(productoId);
             actualizarAccesoriosIncluidos(productoId);
             actualizarResumen(productoId);
+        }
+
+        function obtenerColorDeCapa(productoId) {
+            const capaSelect = document.getElementById('capa_' + productoId);
+            const opcion = capaSelect?.selectedOptions?.[0];
+            const carrera = opcion?.dataset?.carrera;
+
+            const coloresPorCarrera = {
+                'DERECHO': 'Rojo',
+                'AGRONOMIA': 'Verde',
+                'PEDAGOGIA': 'Celeste',
+                'MEDICINA': 'Amarillo',
+                'CIENCIAS_ECONOMICAS': 'Naranja'
+            };
+
+            return coloresPorCarrera[carrera] || null;
+        }
+
+        function seleccionarBorlaPorColor(productoId, color) {
+            const borlaSelect = document.getElementById('borla_' + productoId);
+            if (!borlaSelect || !color) {
+                return false;
+            }
+
+            const opcionCoincidente = Array.from(borlaSelect.options).find(function (opcion) {
+                return opcion.dataset.color === color;
+            });
+
+            if (opcionCoincidente) {
+                borlaSelect.value = opcionCoincidente.value;
+                return true;
+            }
+
+            return false;
+        }
+
+        function actualizarBorlaIncluidaSegunCapa(productoId) {
+            const borlaCheck = document.getElementById('borla_incluida_' + productoId);
+            if (!borlaCheck || !borlaCheck.checked) {
+                return;
+            }
+
+            const color = obtenerColorDeCapa(productoId);
+            if (!color) {
+                return;
+            }
+
+            const borlaSelect = document.getElementById('borla_' + productoId);
+            if (!borlaSelect) {
+                return;
+            }
+
+            const opcionSeleccionada = borlaSelect.selectedOptions?.[0];
+            if (opcionSeleccionada?.dataset?.color === color) {
+                return;
+            }
+
+            if (!seleccionarBorlaPorColor(productoId, color)) {
+                borlaSelect.value = '';
+            }
         }
 
         checks.forEach(function (check) {
@@ -867,6 +1026,15 @@
         checksAccesorios.forEach(function (check) {
             check.addEventListener('change', function () {
                 const productoId = check.dataset.producto;
+                actualizarAccesoriosIncluidos(productoId);
+            });
+        });
+
+        const birreteSelects = document.querySelectorAll('.accesorio-select[id^="birrete_"]');
+
+        birreteSelects.forEach(function (select) {
+            select.addEventListener('change', function () {
+                const productoId = select.dataset.producto || select.id.replace('birrete_', '');
                 actualizarAccesoriosIncluidos(productoId);
             });
         });
@@ -972,6 +1140,118 @@
                 }
             }, true);
         }
+    });
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const hiddenFabricacionCheckbox = document.getElementById('fabricacion_autorizada_hidden');
+        const fabricacionMetaPanel = document.getElementById('fabricacion_meta_panel');
+
+        function actualizarFabricacionGlobal() {
+            const anyFabricacion = !!document.querySelector('.producto-fabricacion-checkbox:checked');
+
+            if (hiddenFabricacionCheckbox) {
+                hiddenFabricacionCheckbox.value = anyFabricacion ? '1' : '0';
+            }
+
+            if (fabricacionMetaPanel) {
+                fabricacionMetaPanel.classList.toggle('d-none', !anyFabricacion);
+            }
+        }
+
+        function actualizarStockAlert(productoId) {
+            const cantidadInput = document.getElementById('cantidad_' + productoId);
+            const togaItem = document.getElementById('toga_item_' + productoId);
+            const stockAlert = document.getElementById('stock_alert_' + productoId);
+            const fabricacionNotice = document.getElementById('fabricacion_notice_' + productoId);
+            const cantidad = parseInt(cantidadInput?.value || '0', 10) || 0;
+            const stock = parseInt(togaItem?.dataset.stock || '0', 10) || 0;
+            const exceso = cantidad > stock;
+
+            if (stockAlert) {
+                stockAlert.classList.toggle('d-none', !exceso || !cantidadInput || cantidadInput.disabled);
+            }
+
+            if (fabricacionNotice) {
+                fabricacionNotice.classList.toggle('d-none', !exceso);
+            }
+
+            if (!exceso && fabricacionNotice) {
+                const checkbox = fabricacionNotice.querySelector('.producto-fabricacion-checkbox');
+                if (checkbox) {
+                    checkbox.checked = false;
+                }
+            }
+
+            actualizarFabricacionGlobal();
+        }
+
+        function inicializarStockAlerts() {
+            document.querySelectorAll('.cantidad-input').forEach(function (input) {
+                const productoId = input.dataset.productoId || obtenerProductoIdDesdeId(input.id);
+
+                input.addEventListener('input', function () {
+                    actualizarStockAlert(productoId);
+                });
+
+                input.addEventListener('change', function () {
+                    actualizarStockAlert(productoId);
+                });
+
+                actualizarStockAlert(productoId);
+            });
+        }
+
+        function obtenerProductoIdDesdeId(id) {
+            if (!id) return null;
+            const partes = id.split('_');
+            return partes[partes.length - 1];
+        }
+
+        document.querySelectorAll('.btn-reset-stock').forEach(function (button) {
+            button.addEventListener('click', function () {
+                const productoId = button.dataset.producto;
+                const stock = parseInt(button.dataset.stock || '0', 10) || 0;
+                const cantidadInput = document.getElementById('cantidad_' + productoId);
+
+                if (cantidadInput) {
+                    cantidadInput.value = stock > 0 ? stock : '';
+                    cantidadInput.dispatchEvent(new Event('input'));
+                    cantidadInput.dispatchEvent(new Event('change'));
+                }
+            });
+        });
+
+        document.querySelectorAll('.btn-authorize-fabricacion').forEach(function (button) {
+            button.addEventListener('click', function () {
+                const productoId = button.dataset.producto;
+                const notice = document.getElementById('fabricacion_notice_' + productoId);
+                const checkbox = document.getElementById('fabricacion_producto_' + productoId);
+
+                if (notice && checkbox) {
+                    notice.classList.remove('d-none');
+                    checkbox.checked = true;
+                    actualizarFabricacionGlobal();
+                }
+            });
+        });
+
+        document.querySelectorAll('.producto-fabricacion-checkbox').forEach(function (checkbox) {
+            checkbox.addEventListener('change', function () {
+                actualizarFabricacionGlobal();
+            });
+        });
+
+        document.querySelectorAll('.producto-check').forEach(function (check) {
+            check.addEventListener('change', function () {
+                const productoId = check.dataset.producto || check.dataset.productoId;
+                actualizarStockAlert(productoId);
+            });
+        });
+
+        inicializarStockAlerts();
+        actualizarFabricacionGlobal();
     });
 </script>
 

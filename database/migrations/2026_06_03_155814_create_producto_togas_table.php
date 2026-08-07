@@ -18,6 +18,10 @@ return new class extends Migration
                 ->constrained('productos')
                 ->cascadeOnDelete();
 
+            $table->enum('tipo_toga', ['ESTANDAR', 'UNIVERSITARIA'])
+                ->default('ESTANDAR')
+                ->after('producto_id');
+
             $table->string('talla', 50);
             $table->string('color', 50)->default('Negro');
 

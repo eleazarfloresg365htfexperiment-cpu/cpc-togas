@@ -175,6 +175,21 @@
                         </div>
 
                         <div class="col-md-4">
+                            <label class="form-label fw-semibold">Tipo de toga</label>
+                            <select
+                                name="tipo_toga"
+                                class="form-select"
+                            >
+                                <option value="ESTANDAR" {{ old('tipo_toga', 'ESTANDAR') === 'ESTANDAR' ? 'selected' : '' }}>
+                                    Estándar
+                                </option>
+                                <option value="UNIVERSITARIA" {{ old('tipo_toga') === 'UNIVERSITARIA' ? 'selected' : '' }}>
+                                    Universitaria
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
                             <label class="form-label fw-semibold">Color de toga</label>
                             <input 
                                 type="text" 
@@ -237,6 +252,34 @@
                                 placeholder="Ej. Negro, azul marino"
                             >
                         </div>
+
+                        <div class="col-md-4" id="grupo-carrera-capa">
+                                <label class="form-label">Carrera</label>
+
+                                <select
+                                    name="carrera_capa"
+                                    class="form-select">
+
+                                    <option value="">Seleccione...</option>
+
+                                    @foreach([
+                                        'AGRONOMIA'=>'Agronomía',
+                                        'DERECHO'=>'Derecho',
+                                        'PEDAGOGIA'=>'Pedagogía',
+                                        'MEDICINA'=>'Medicina',
+                                        'CIENCIAS_ECONOMICAS'=>'Ciencias Económicas'
+                                    ] as $valor=>$texto)
+
+                                        <option
+                                            value="{{ $valor }}"
+                                            {{ old('carrera_capa') == $valor ? 'selected' : '' }}>
+                                            {{ $texto }}
+                                        </option>
+
+                                    @endforeach
+
+                                </select>
+                            </div>
 
                         <div class="col-md-12">
                             <label class="form-label fw-semibold">
@@ -331,6 +374,7 @@
 
                                     <input
                                         type="text"
+                                        id="codigo_color_collarin"
                                         name="codigo_color_collarin"
                                         class="form-control"
                                         value="{{ old('codigo_color_collarin') }}"
@@ -344,27 +388,27 @@
                                         Color
                                     </label>
 
-                                    <input
-                                        list="listaColoresCollarin"
+                                    <select
+                                        id="color_collarin"
                                         name="color_collarin"
-                                        class="form-control"
-                                        value="{{ old('color_collarin') }}"
-                                        placeholder="Ej. Azul"
+                                        class="form-select"
                                     >
-
-                                    <datalist id="listaColoresCollarin">
-                                        <option value="Azul">
-                                        <option value="Rojo">
-                                        <option value="Verde">
-                                        <option value="Dorado">
-                                        <option value="Negro">
-                                        <option value="Blanco">
-                                    </datalist>
-
-                                </div>
-
+                                        <option value="">Seleccione...</option>
+                                        <option value="Dorado" {{ old('color_collarin') === 'Dorado' ? 'selected' : '' }}>
+                                            Dorado
+                                        </option>
+                                        <option value="Rojo" {{ old('color_collarin') === 'Rojo' ? 'selected' : '' }}>
+                                            Rojo
+                                        </option>
+                                        <option value="Verde" {{ old('color_collarin') === 'Verde' ? 'selected' : '' }}>
+                                            Verde
+                                        </option>
+                                        <option value="Azul" {{ old('color_collarin') === 'Azul' ? 'selected' : '' }}>
+                                            Azul
+                                        </option>
+                                    </select>
+                                </div>    
                             </div>
-
                         </div>
 
 
@@ -415,6 +459,7 @@
 
                                 <input
                                     type="text"
+                                    id="borla_codigo_color"
                                     name="borla_codigo_color"
                                     class="form-control"
                                     value="{{ old('borla_codigo_color') }}"
@@ -424,13 +469,28 @@
 
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Color de borla</label>
-                                <input
-                                    type="text"
+                                <select
+                                    id="borla_color"
                                     name="borla_color"
-                                    class="form-control"
-                                    value="{{ old('borla_color') }}"
-                                    placeholder="Ej. Azul marino"
+                                    class="form-select"
                                 >
+                                    <option value="">Seleccione...</option>
+                                    <option value="Celeste" {{ old('borla_color') === 'Celeste' ? 'selected' : '' }}>
+                                        Celeste
+                                    </option>
+                                    <option value="Rojo" {{ old('borla_color') === 'Rojo' ? 'selected' : '' }}>
+                                        Rojo
+                                    </option>
+                                    <option value="Verde" {{ old('borla_color') === 'Verde' ? 'selected' : '' }}>
+                                        Verde
+                                    </option>
+                                    <option value="Amarillo" {{ old('borla_color') === 'Amarillo' ? 'selected' : '' }}>
+                                        Amarillo
+                                    </option>
+                                    <option value="Naranja" {{ old('borla_color') === 'Naranja' ? 'selected' : '' }}>
+                                        Naranja
+                                    </option>
+                                </select>
                             </div>
 
                             <div class="col-md-12">
@@ -642,6 +702,65 @@
         });
 
         actualizarCamposCollarin();
+
+        const coloresCollarin = {
+            'Azul': 'C-AZ',
+            'Rojo': 'C-RO',
+            'Verde': 'C-VE',
+            'Dorado': 'C-DO',
+            'Negro': 'C-NG',
+            'Blanco': 'C-BL'
+        };
+
+        const coloresBorla = {
+            'Celeste': 'B-CE',
+            'Rojo': 'B-RO',
+            'Verde': 'B-VE',
+            'Amarillo': 'B-AM',
+            'Naranja': 'B-NA'
+        };
+
+        const colorCollarinInput = document.getElementById('color_collarin');
+        const codigoCollarinInput = document.getElementById('codigo_color_collarin');
+        const borlaColorInput = document.getElementById('borla_color');
+        const borlaCodigoInput = document.getElementById('borla_codigo_color');
+
+        function actualizarCodigoCollarin() {
+            if (!colorCollarinInput || !codigoCollarinInput) {
+                return;
+            }
+
+            const codigo = coloresCollarin[colorCollarinInput.value];
+
+            if (codigo) {
+                codigoCollarinInput.value = codigo;
+            }
+        }
+
+        function actualizarCodigoBorla() {
+            if (!borlaColorInput || !borlaCodigoInput) {
+                return;
+            }
+
+            const codigo = coloresBorla[borlaColorInput.value];
+
+            if (codigo) {
+                borlaCodigoInput.value = codigo;
+            }
+        }
+
+        if (colorCollarinInput) {
+            colorCollarinInput.addEventListener('change', actualizarCodigoCollarin);
+            colorCollarinInput.addEventListener('input', actualizarCodigoCollarin);
+            actualizarCodigoCollarin();
+        }
+
+        if (borlaColorInput) {
+            borlaColorInput.addEventListener('change', actualizarCodigoBorla);
+            borlaColorInput.addEventListener('input', actualizarCodigoBorla);
+            actualizarCodigoBorla();
+        }
+
     });
 </script>
 

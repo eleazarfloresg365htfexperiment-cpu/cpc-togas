@@ -16,6 +16,7 @@ class ProductoBirrete extends Model
         'tipo_birrete',
         'codigo_color',
         'color',
+        'carrera',
         'tiene_borlas_extra',
         'descripcion_borlas_extra',
     ];
