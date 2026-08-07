@@ -363,15 +363,11 @@
                         </div>
 
                        <div class="col-md-6" id="grupo-color-collarin">
-
                             <div class="row">
-
                                 <div class="col-md-3">
-
                                     <label class="form-label fw-semibold">
                                         Código de color
                                     </label>
-
                                     <input
                                         type="text"
                                         id="codigo_color_collarin"
@@ -379,68 +375,37 @@
                                         class="form-control"
                                         value="{{ old('codigo_color_collarin') }}"
                                     >
-
                                 </div>
 
                                 <div class="col-md-9">
-
                                     <label class="form-label fw-semibold">
                                         Color
                                     </label>
-
                                     <select
                                         id="color_collarin"
                                         name="color_collarin"
                                         class="form-select"
+                                        required
                                     >
                                         <option value="">Seleccione...</option>
-                                        <option value="Dorado" {{ old('color_collarin') === 'Dorado' ? 'selected' : '' }}>
-                                            Dorado
-                                        </option>
-                                        <option value="Rojo" {{ old('color_collarin') === 'Rojo' ? 'selected' : '' }}>
-                                            Rojo
-                                        </option>
-                                        <option value="Verde" {{ old('color_collarin') === 'Verde' ? 'selected' : '' }}>
-                                            Verde
-                                        </option>
-                                        <option value="Azul" {{ old('color_collarin') === 'Azul' ? 'selected' : '' }}>
-                                            Azul
-                                        </option>
+
+                                        @php
+                                            $tipo = old('tipo_collarin', 'NORMAL');
+                                            $color = old('color_collarin');
+                                        @endphp
+
+                                        @if($tipo === 'NORMAL')
+                                            <option value="Dorado" {{ $color == 'Dorado' ? 'selected' : '' }}>Dorado</option>
+                                            <option value="Rojo" {{ $color == 'Rojo' ? 'selected' : '' }}>Rojo</option>
+                                            <option value="Verde" {{ $color == 'Verde' ? 'selected' : '' }}>Verde</option>
+                                        @elseif($tipo === 'UNIVERSITARIO')
+                                            <option value="Azul" {{ $color == 'Azul' ? 'selected' : '' }}>Azul</option>
+                                        @endif
                                     </select>
-                                </div>    
+                                </div>
                             </div>
                         </div>
 
-
-                        <div class="col-md-6 d-none" id="grupo-tamano-collarin">
-
-                            <label class="form-label fw-semibold">
-                                Tamaño
-                            </label>
-
-                            <select
-                                name="tamano_collarin"
-                                class="form-select"
-                            >
-                                <option value="">Seleccione...</option>
-
-                                <option
-                                    value="PEQUENO"
-                                    {{ old('tamano_collarin') == 'PEQUENO' ? 'selected' : '' }}
-                                >
-                                    Pequeño
-                                </option>
-
-                                <option
-                                    value="GRANDE"
-                                    {{ old('tamano_collarin') == 'GRANDE' ? 'selected' : '' }}
-                                >
-                                    Grande
-                                </option>
-
-                            </select>
-
-                        </div>
 
                     </div>
 
@@ -672,26 +637,41 @@
             actualizarPreviewStock();
         }
 
+        const colorCollarinSelect = document.getElementById('color_collarin');
+
+        const opcionesColorPorTipo = {
+            NORMAL: ['Dorado', 'Rojo', 'Verde'],
+            UNIVERSITARIO: ['Azul']
+        };
+
+        function actualizarOpcionesColorCollarin(tipo, valorPrevio) {
+            if (!colorCollarinSelect) return;
+
+            const opciones = opcionesColorPorTipo[tipo] || [];
+
+            colorCollarinSelect.innerHTML = '<option value="">Seleccione...</option>';
+
+            opciones.forEach(color => {
+                const opt = document.createElement('option');
+                opt.value = color;
+                opt.textContent = color;
+                if (color === valorPrevio) {
+                    opt.selected = true;
+                }
+                colorCollarinSelect.appendChild(opt);
+            });
+        }
+
         function actualizarCamposCollarin() {
 
-            const tipo = document.querySelector('input[name="tipo_collarin"]:checked');
+            const tipoInput = document.querySelector('input[name="tipo_collarin"]:checked');
 
-            if (!tipo) return;
+            if (!tipoInput || !colorCollarinSelect) return;
 
-            const grupoColor = document.getElementById('grupo-color-collarin');
-            const grupoTamano = document.getElementById('grupo-tamano-collarin');
+            const valorPrevio = colorCollarinSelect.value;
 
-            if (tipo.value === 'NORMAL') {
-
-                grupoColor.classList.remove('d-none');
-                grupoTamano.classList.add('d-none');
-
-            } else {
-
-                grupoColor.classList.add('d-none');
-                grupoTamano.classList.remove('d-none');
-
-            }
+            actualizarOpcionesColorCollarin(tipoInput.value, valorPrevio);
+            actualizarCodigoCollarin();
 
         }
 
@@ -700,8 +680,6 @@
             radio.addEventListener('change', actualizarCamposCollarin);
 
         });
-
-        actualizarCamposCollarin();
 
         const coloresCollarin = {
             'Azul': 'C-AZ',
@@ -720,20 +698,21 @@
             'Naranja': 'B-NA'
         };
 
-        const colorCollarinInput = document.getElementById('color_collarin');
         const codigoCollarinInput = document.getElementById('codigo_color_collarin');
         const borlaColorInput = document.getElementById('borla_color');
         const borlaCodigoInput = document.getElementById('borla_codigo_color');
 
         function actualizarCodigoCollarin() {
-            if (!colorCollarinInput || !codigoCollarinInput) {
+            if (!colorCollarinSelect || !codigoCollarinInput) {
                 return;
             }
 
-            const codigo = coloresCollarin[colorCollarinInput.value];
+            const codigo = coloresCollarin[colorCollarinSelect.value];
 
             if (codigo) {
                 codigoCollarinInput.value = codigo;
+            } else {
+                codigoCollarinInput.value = '';
             }
         }
 
@@ -749,11 +728,14 @@
             }
         }
 
-        if (colorCollarinInput) {
-            colorCollarinInput.addEventListener('change', actualizarCodigoCollarin);
-            colorCollarinInput.addEventListener('input', actualizarCodigoCollarin);
-            actualizarCodigoCollarin();
+        if (colorCollarinSelect) {
+            colorCollarinSelect.addEventListener('change', actualizarCodigoCollarin);
         }
+
+        // Sincroniza las opciones de color con el tipo de collarín ya
+        // seleccionado (radio marcado por defecto o por old()) y
+        // autocompleta el código de color al cargar la página.
+        actualizarCamposCollarin();
 
         if (borlaColorInput) {
             borlaColorInput.addEventListener('change', actualizarCodigoBorla);
@@ -763,5 +745,6 @@
 
     });
 </script>
+
 
 @endsection
