@@ -717,31 +717,331 @@
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const checks = document.querySelectorAll('.producto-check');
+document.addEventListener('DOMContentLoaded', function () {
 
-        checks.forEach(function (check) {
-            const productoId = check.dataset.producto || check.dataset.productoId;
-            const cantidadInput = document.querySelector('.cantidad-input[data-producto-id="' + productoId + '"]');
+    const hiddenFabricacionCheckbox =
+        document.getElementById('fabricacion_autorizada_hidden');
 
-            function actualizarEstado() {
-                if (check.checked) {
-                    cantidadInput.disabled = false;
+    const fabricacionMetaPanel =
+        document.getElementById('fabricacion_meta_panel');
 
-                    if (!cantidadInput.value) {
-                        cantidadInput.value = 1;
-                    }
-                } else {
-                    cantidadInput.disabled = true;
-                    cantidadInput.value = '';
+
+    /*
+    |--------------------------------------------------------------------------
+    | Fabricación global
+    |--------------------------------------------------------------------------
+    |
+    | Se activa únicamente si alguna toga tiene autorizado fabricar
+    | el excedente.
+    |
+    */
+    function actualizarFabricacionGlobal() {
+
+        const anyFabricacion =
+            !!document.querySelector('.producto-fabricacion-checkbox:checked');
+
+        if (hiddenFabricacionCheckbox) {
+            hiddenFabricacionCheckbox.value = anyFabricacion ? '1' : '0';
+        }
+
+        if (fabricacionMetaPanel) {
+            fabricacionMetaPanel.classList.toggle(
+                'd-none',
+                !anyFabricacion
+            );
+        }
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Actualizar alerta de stock
+    |--------------------------------------------------------------------------
+    */
+    function actualizarStockAlert(productoId) {
+
+        const cantidadInput =
+            document.getElementById('cantidad_' + productoId);
+
+        const togaItem =
+            document.getElementById('toga_item_' + productoId);
+
+        const stockAlert =
+            document.getElementById('stock_alert_' + productoId);
+
+        const fabricacionNotice =
+            document.getElementById('fabricacion_notice_' + productoId);
+
+        const cantidad =
+            parseInt(cantidadInput?.value || '0', 10) || 0;
+
+        const stock =
+            parseInt(togaItem?.dataset.stock || '0', 10) || 0;
+
+        const exceso = cantidad > stock;
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Alerta de exceso
+        |--------------------------------------------------------------------------
+        */
+        if (stockAlert) {
+            stockAlert.classList.toggle(
+                'd-none',
+                !exceso ||
+                !cantidadInput ||
+                cantidadInput.disabled
+            );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Panel de fabricación
+        |--------------------------------------------------------------------------
+        */
+        if (fabricacionNotice) {
+
+            fabricacionNotice.classList.toggle(
+                'd-none',
+                !exceso
+            );
+
+
+            /*
+            | Si ya no existe exceso, se cancela automáticamente
+            | la autorización de fabricación de ese producto.
+            |
+            | IMPORTANTE:
+            | Esto NO toca el checkbox .producto-check.
+            */
+            if (!exceso) {
+
+                const checkbox =
+                    fabricacionNotice.querySelector(
+                        '.producto-fabricacion-checkbox'
+                    );
+
+                if (checkbox) {
+                    checkbox.checked = false;
                 }
             }
+        }
 
-            check.addEventListener('change', actualizarEstado);
-            actualizarEstado();
+
+        actualizarFabricacionGlobal();
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Inicializar controles de stock
+    |--------------------------------------------------------------------------
+    */
+    function inicializarStockAlerts() {
+
+        document
+            .querySelectorAll('.cantidad-input')
+            .forEach(function (input) {
+
+                const productoId =
+                    input.dataset.productoId ||
+                    obtenerProductoIdDesdeId(input.id);
+
+
+                input.addEventListener('input', function () {
+                    actualizarStockAlert(productoId);
+                });
+
+
+                input.addEventListener('change', function () {
+                    actualizarStockAlert(productoId);
+                });
+
+
+                actualizarStockAlert(productoId);
+            });
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Obtener ID del producto
+    |--------------------------------------------------------------------------
+    */
+    function obtenerProductoIdDesdeId(id) {
+
+        if (!id) {
+            return null;
+        }
+
+        const partes = id.split('_');
+
+        return partes[partes.length - 1];
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | OMITIR EXCEDENTE
+    |--------------------------------------------------------------------------
+    |
+    | Reduce la cantidad hasta el stock disponible.
+    |
+    | MUY IMPORTANTE:
+    | NO deselecciona la toga.
+    |
+    */
+    document
+        .querySelectorAll('.btn-reset-stock')
+        .forEach(function (button) {
+
+            button.addEventListener('click', function () {
+
+                const productoId =
+                    button.dataset.producto;
+
+                const stock =
+                    parseInt(
+                        button.dataset.stock || '0',
+                        10
+                    ) || 0;
+
+                const cantidadInput =
+                    document.getElementById(
+                        'cantidad_' + productoId
+                    );
+
+
+                if (!cantidadInput) {
+                    return;
+                }
+
+
+                /*
+                | Si existe stock, usamos todo el disponible.
+                | Si no existe stock, dejamos vacío.
+                */
+                cantidadInput.value =
+                    stock > 0 ? stock : '';
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | IMPORTANTE
+                |--------------------------------------------------------------------------
+                | No hacemos:
+                |
+                | checkbox.checked = false;
+                |
+                | La toga sigue seleccionada.
+                |--------------------------------------------------------------------------
+                */
+
+
+                cantidadInput.dispatchEvent(
+                    new Event('input', {
+                        bubbles: true
+                    })
+                );
+
+                cantidadInput.dispatchEvent(
+                    new Event('change', {
+                        bubbles: true
+                    })
+                );
+            });
         });
 
-    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | AUTORIZAR FABRICACIÓN
+    |--------------------------------------------------------------------------
+    */
+    document
+        .querySelectorAll('.btn-authorize-fabricacion')
+        .forEach(function (button) {
+
+            button.addEventListener('click', function () {
+
+                const productoId =
+                    button.dataset.producto;
+
+                const notice =
+                    document.getElementById(
+                        'fabricacion_notice_' + productoId
+                    );
+
+                const checkbox =
+                    document.getElementById(
+                        'fabricacion_producto_' + productoId
+                    );
+
+
+                if (!notice || !checkbox) {
+                    return;
+                }
+
+
+                notice.classList.remove('d-none');
+
+                checkbox.checked = true;
+
+                actualizarFabricacionGlobal();
+            });
+        });
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Cambio manual de autorización de fabricación
+    |--------------------------------------------------------------------------
+    */
+    document
+        .querySelectorAll('.producto-fabricacion-checkbox')
+        .forEach(function (checkbox) {
+
+            checkbox.addEventListener('change', function () {
+
+                actualizarFabricacionGlobal();
+
+            });
+        });
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Cambio de selección de toga
+    |--------------------------------------------------------------------------
+    */
+    document
+        .querySelectorAll('.producto-check')
+        .forEach(function (check) {
+
+            check.addEventListener('change', function () {
+
+                const productoId =
+                    check.dataset.producto ||
+                    check.dataset.productoId;
+
+                actualizarStockAlert(productoId);
+
+            });
+        });
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Inicialización
+    |--------------------------------------------------------------------------
+    */
+    inicializarStockAlerts();
+
+    actualizarFabricacionGlobal();
+
+});
 </script>
 
 <script>

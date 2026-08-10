@@ -29,7 +29,26 @@ class AlquilerRulesService
             $this->validarProductoPrincipal($producto, $cantidad, $index + 1);
 
             $cantidadDisponible = max(0, $producto->stock_disponible);
-            $cantidadPendiente = max(0, $cantidad - $cantidadDisponible);
+
+            $fabricarExcedente = !empty($item['fabricar_excedente']);
+
+            if ($fabricarExcedente) {
+                $cantidadPendiente = max(0, $cantidad - $cantidadDisponible);
+            } else {
+                // Si el usuario decidió omitir el excedente,
+                // la cantidad real del alquiler se limita al stock disponible.
+                if ($cantidad > $cantidadDisponible) {
+                    $cantidad = $cantidadDisponible;
+                }
+
+                $cantidadPendiente = 0;
+            }
+
+            if ($cantidad <= 0) {
+                throw new Exception(
+                    "El producto \"{$producto->nombre}\" no tiene stock disponible y no se autorizó fabricación."
+                );
+            }
 
             $accesorios = $this->prepararAccesorios(
                 $item['accesorios'] ?? [],
@@ -48,6 +67,7 @@ class AlquilerRulesService
                 'cantidad' => $cantidad,
                 'cantidad_disponible' => $cantidadDisponible,
                 'cantidad_pendiente' => $cantidadPendiente,
+                'fabricar_excedente' => $fabricarExcedente,
                 'precio_unitario' => (float) $producto->precio_alquiler,
                 'subtotal' => $subtotal,
                 'accesorios' => $accesorios,
@@ -134,7 +154,24 @@ class AlquilerRulesService
             }
 
             $cantidadDisponible = max(0, $productoAccesorio->stock_disponible);
-            $cantidadPendiente = max(0, $cantidadAccesorio - $cantidadDisponible);
+
+            $fabricarExcedente = !empty($accesorio['fabricar_excedente']);
+
+            if ($fabricarExcedente) {
+                $cantidadPendiente = max(0, $cantidadAccesorio - $cantidadDisponible);
+            } else {
+                if ($cantidadAccesorio > $cantidadDisponible) {
+                    $cantidadAccesorio = $cantidadDisponible;
+                }
+
+                $cantidadPendiente = 0;
+            }
+
+            if ($cantidadAccesorio <= 0) {
+                throw new Exception(
+                    "El accesorio \"{$productoAccesorio->nombre}\" no tiene stock disponible y no se autorizó fabricación."
+                );
+            }
 
             $precioUnitario = isset($accesorio['precio_unitario'])
                 ? (float) $accesorio['precio_unitario']
@@ -149,6 +186,7 @@ class AlquilerRulesService
                 'cantidad' => $cantidadAccesorio,
                 'cantidad_disponible' => $cantidadDisponible,
                 'cantidad_pendiente' => $cantidadPendiente,
+                'fabricar_excedente' => $fabricarExcedente,
                 'precio_unitario' => $precioUnitario,
                 'total_linea' => $totalLinea,
             ];
