@@ -17,15 +17,17 @@ class DiscountCalculator
         }
     }
 
-    public function calcularDescuentoPorTogas(array $items): float
-    {
-        if (!config('alquiler.discounts.enabled', false)) {
-            return 0.0;
-        }
+    /**
+     * No existen descuentos automáticos por cantidad de togas.
+     * Todo descuento debe ser introducido manualmente por el usuario.
+     */
+    public function calcularDescuentoPorTogas(
+        array $items,
+        float $descuentoPorToga = 0
+    ): float {
+        $descuentoPorToga = max($descuentoPorToga, 0);
 
-        $valorPorToga = (float) config('alquiler.discounts.per_toga', 0);
-
-        if ($valorPorToga <= 0) {
+        if ($descuentoPorToga <= 0) {
             return 0.0;
         }
 
@@ -37,11 +39,14 @@ class DiscountCalculator
             }
         }
 
-        return round($cantidadTogas * $valorPorToga, 2);
+        return round($cantidadTogas * $descuentoPorToga, 2);
     }
 
-    public function calcularTotal(float $subtotal, float $descuentoManual, float $descuentoAutomatic = 0): float
-    {
+    public function calcularTotal(
+        float $subtotal,
+        float $descuentoManual,
+        float $descuentoAutomatic = 0
+    ): float {
         $descuentoTotal = round($descuentoManual + $descuentoAutomatic, 2);
 
         $this->validarDescuento($subtotal, $descuentoTotal);

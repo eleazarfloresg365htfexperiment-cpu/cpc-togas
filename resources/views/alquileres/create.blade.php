@@ -184,17 +184,61 @@
                         </div>
                     </div>
 
-                    <div class="col-md-6">
-                        <label for="descuento" class="form-label">Descuento</label>
-                        <input type="number"
-                               name="descuento"
-                               id="descuento"
-                               class="form-control"
-                               value="{{ old('descuento', 0) }}"
-                               min="0"
-                               step="0.01">
+                    <div class="col-md-4">
+                        <label for="descuento" class="form-label">
+                            Descuento general
+                        </label>
+
+                        <input
+                            type="number"
+                            name="descuento"
+                            id="descuento"
+                            class="form-control"
+                            value="{{ old('descuento', 0) }}"
+                            min="0"
+                            step="0.01"
+                        >
+
                         <small class="text-muted">
-                            Coloca 0 si no aplica descuento.
+                            Descuento adicional aplicado al alquiler.
+                        </small>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label for="descuento_por_toga" class="form-label">
+                            Descuento por toga
+                        </label>
+
+                        <input
+                            type="number"
+                            name="descuento_por_toga"
+                            id="descuento_por_toga"
+                            class="form-control"
+                            value="{{ old('descuento_por_toga', 0) }}"
+                            min="0"
+                            step="0.01"
+                        >
+
+                        <small class="text-muted">
+                            Monto de descuento aplicado a cada toga.
+                        </small>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">
+                            Descuento por togas
+                        </label>
+
+                        <input
+                            type="text"
+                            id="descuento_toga_preview"
+                            class="form-control"
+                            value="Q 0.00"
+                            readonly
+                        >
+
+                        <small class="text-muted">
+                            Se calcula según la cantidad de togas.
                         </small>
                     </div>
 
@@ -333,6 +377,7 @@
                                     id="toga_item_{{ $toga->id }}"
                                     data-tipo="{{ $toga->toga->tipo_toga ?? 'ESTANDAR' }}"
                                     data-stock="{{ $toga->stock_disponible }}"
+                                    data-precio="{{ $toga->precio_alquiler }}"
                                 >
 
                                     <div class="row g-3 align-items-center">
@@ -692,12 +737,77 @@
 
                     </div>
                 </div>
-                <div class="alert alert-light border rounded-4 mt-4">
-                    <div class="fw-bold mb-1">Resumen de la acción</div>
-                    <div class="text-muted">
-                        El sistema calculará el subtotal, descuento, total y saldo pendiente según los productos seleccionados.
+                <div class="card border-0 shadow-sm rounded-4 mt-4">
+                    <div class="card-header bg-white border-0">
+                        <div class="fw-bold">💰 Resumen del alquiler</div>
+                            <small class="text-muted">
+                                El resumen se actualiza automáticamente según los productos, cantidades y descuento ingresados.
+                            </small>
+                        </div>
+                        <div class="card-body">
+
+                        <div class="row g-3">
+
+                            <div class="col-md-4">
+                                <div class="border rounded-4 p-3 h-100">
+                                    <div class="text-muted small">
+                                        Subtotal
+                                    </div>
+
+                                    <div class="fs-4 fw-bold">
+                                        Q <span id="resumen_subtotal">0.00</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="border rounded-4 p-3 h-100">
+                                    <div class="text-muted small">
+                                        Descuento
+                                    </div>
+
+                                    <div class="fs-4 fw-bold text-danger">
+                                        - Q <span id="resumen_descuento">0.00</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="border rounded-4 p-3 h-100">
+                                    <div class="text-muted small">
+                                        Total
+                                    </div>
+
+                                    <div class="fs-4 fw-bold text-primary">
+                                        Q <span id="resumen_total">0.00</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <hr class="my-4">
+
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-semibold">
+                                    Saldo pendiente inicial
+                                </div>
+
+                                <small class="text-muted">
+                                    El alquiler se crea inicialmente sin pagos registrados.
+                                </small>
+                            </div>
+
+                            <div class="fs-4 fw-bold">
+                                Q <span id="resumen_saldo">0.00</span>
+                            </div>
+                        </div>
+
                     </div>
+
                 </div>
+
 
                 <div class="d-flex justify-content-end gap-2 flex-wrap mt-4">
                     <a href="{{ route('alquileres.web') }}" class="btn btn-outline-secondary rounded-pill px-4">
@@ -1583,5 +1693,254 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 </script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    const descuentoInput = document.getElementById('descuento');
+
+    const subtotalElement = document.getElementById('resumen_subtotal');
+    const descuentoElement = document.getElementById('resumen_descuento');
+    const totalElement = document.getElementById('resumen_total');
+    const saldoElement = document.getElementById('resumen_saldo');
+
+
+    function numero(valor) {
+        const numero = parseFloat(valor);
+
+        return Number.isFinite(numero) ? numero : 0;
+    }
+
+
+    function dinero(valor) {
+        return numero(valor).toFixed(2);
+    }
+
+
+    function calcularResumen() {
+
+        let subtotal = 0;
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Productos principales
+        |--------------------------------------------------------------------------
+        */
+
+        document.querySelectorAll('.toga-item').forEach(function (item) {
+
+            const productoId = item.id.replace('toga_item_', '');
+
+            const checkbox = document.getElementById('producto_' + productoId);
+            const cantidadInput = document.getElementById('cantidad_' + productoId);
+
+            if (!checkbox || !checkbox.checked || !cantidadInput) {
+                return;
+            }
+
+            const cantidad = numero(cantidadInput.value);
+
+            if (cantidad <= 0) {
+                return;
+            }
+
+            const precio = numero(item.dataset.precio);
+
+            subtotal += precio * cantidad;
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Birrete extra
+            |--------------------------------------------------------------------------
+            */
+
+            const birreteExtra = document.getElementById(
+                'birrete_extra_' + productoId
+            );
+
+            const birreteExtraCantidad = document.getElementById(
+                'birrete_extra_cantidad_' + productoId
+            );
+
+            if (
+                birreteExtra &&
+                birreteExtra.value &&
+                birreteExtraCantidad
+            ) {
+                const cantidadExtra = numero(
+                    birreteExtraCantidad.value
+                );
+
+                if (cantidadExtra > 0) {
+
+                    const opcion = birreteExtra.options[
+                        birreteExtra.selectedIndex
+                    ];
+
+                    const tipoBirrete = opcion?.dataset.tipo || 'ESTANDAR';
+
+                    const precioBirrete =
+                        tipoBirrete === 'UNIVERSITARIO'
+                            ? 50
+                            : 25;
+
+                    subtotal += precioBirrete * cantidadExtra;
+                }
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Borla extra
+            |--------------------------------------------------------------------------
+            */
+
+            const borlaExtra = document.getElementById(
+                'borla_extra_' + productoId
+            );
+
+            const borlaExtraCantidad = document.getElementById(
+                'borla_extra_cantidad_' + productoId
+            );
+
+            if (
+                borlaExtra &&
+                borlaExtra.value &&
+                borlaExtraCantidad
+            ) {
+                const cantidadExtra = numero(
+                    borlaExtraCantidad.value
+                );
+
+                if (cantidadExtra > 0) {
+                    subtotal += 5 * cantidadExtra;
+                }
+            }
+
+        });
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Descuento manual
+        |--------------------------------------------------------------------------
+        */
+
+        let descuento = numero(
+            descuentoInput?.value
+        );
+
+        if (descuento < 0) {
+            descuento = 0;
+        }
+
+        if (descuento > subtotal) {
+            descuento = subtotal;
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Total
+        |--------------------------------------------------------------------------
+        */
+
+        const total = Math.max(
+            subtotal - descuento,
+            0
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Saldo pendiente
+        |--------------------------------------------------------------------------
+        |
+        | Al crear el alquiler todavía no existen pagos.
+        |
+        */
+
+        const saldoPendiente = total;
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Actualizar interfaz
+        |--------------------------------------------------------------------------
+        */
+
+        if (subtotalElement) {
+            subtotalElement.textContent = dinero(subtotal);
+        }
+
+        if (descuentoElement) {
+            descuentoElement.textContent = dinero(descuento);
+        }
+
+        if (totalElement) {
+            totalElement.textContent = dinero(total);
+        }
+
+        if (saldoElement) {
+            saldoElement.textContent = dinero(saldoPendiente);
+        }
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Descuento
+    |--------------------------------------------------------------------------
+    */
+
+    if (descuentoInput) {
+
+        descuentoInput.addEventListener(
+            'input',
+            calcularResumen
+        );
+
+        descuentoInput.addEventListener(
+            'change',
+            calcularResumen
+        );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Productos y cantidades
+    |--------------------------------------------------------------------------
+    */
+
+    document.querySelectorAll(
+        '.producto-check, .cantidad-input, .accesorio-check, .accesorio-select, .extra-input, .extra-cantidad'
+    ).forEach(function (elemento) {
+
+        elemento.addEventListener(
+            'change',
+            calcularResumen
+        );
+
+        elemento.addEventListener(
+            'input',
+            calcularResumen
+        );
+    });
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Inicialización
+    |--------------------------------------------------------------------------
+    */
+
+    calcularResumen();
+
+});
+</script>
+
 
 @endsection

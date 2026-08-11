@@ -11,8 +11,8 @@ return [
     ],
 
     'discounts' => [
-        'enabled' => true,
-        'per_toga' => 5.00,
+        'enabled' => false,
+        'per_toga' => 0.00,
     ],
 
     'required_accessories' => [

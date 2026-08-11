@@ -61,9 +61,20 @@ class AlquilerService
                 $subtotal += $item['subtotal'] + $item['subtotal_accesorios'];
             }
 
-            $descuentoToga = $this->discountCalculator->calcularDescuentoPorTogas($items);
-            $descuentoTotal = round($descuento + $descuentoToga, 2);
-            $total = $this->discountCalculator->calcularTotal($subtotal, $descuento, $descuentoToga);
+            $descuentoManual = max(0, (float) $descuento);
+            $descuentoPorToga = max(0, $descuentoPorToga ?? 0);
+
+            $descuentoToga = $this->discountCalculator->calcularDescuentoPorTogas(
+                $items,
+                $descuentoPorToga
+            );
+            
+            $descuentoTotal = round($descuentoManual, 2);
+
+            $total = $this->discountCalculator->calcularTotal(
+                $subtotal,
+                $descuentoManual
+            );
 
             $codigoRecibo = $this->reciboService->generarCodigoRecibo();
 
@@ -86,8 +97,8 @@ class AlquilerService
                 'estado_pago' => 'PENDIENTE',
                 'subtotal' => $subtotal,
                 'descuento' => $descuentoTotal,
-                'descuento_manual' => $descuento,
-                'descuento_toga' => $descuentoToga,
+                'descuento_manual' => $descuentoManual,
+                'descuento_toga' => 0,
                 'total' => $total,
                 'saldo_pendiente' => $total,
                 'observaciones' => $observaciones,

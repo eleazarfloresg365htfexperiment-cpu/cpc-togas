@@ -43,6 +43,8 @@ class Alquiler extends Model
 
         'subtotal',
         'descuento',
+        'descuento_manual',
+        'descuento_toga',
         'total',
         'saldo_pendiente',
         'fecha_limite_pago_final',
