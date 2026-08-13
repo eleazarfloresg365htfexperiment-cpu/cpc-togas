@@ -1118,6 +1118,7 @@ class WebController extends Controller
             'hora_devolucion_programada' => ['nullable', 'date_format:H:i'],
             
             'descuento' => ['nullable', 'numeric', 'min:0'],
+            'descuento_por_toga' => ['nullable', 'numeric', 'min:0'],
             'observaciones' => ['nullable', 'string', 'max:500'],
 
             'institucion_representada' => ['nullable', 'string', 'max:255'],
@@ -1320,6 +1321,7 @@ class WebController extends Controller
                 clienteId: (int) $datos['cliente_id'],
                 productos: $detalles,
                 descuento: (float) ($datos['descuento'] ?? 0),
+                descuentoPorToga: (float) ($datos['descuento_por_toga'] ?? 0),
                 fechaAlquiler: $datos['fecha_alquiler'],
                 fechaEntrega: $datos['fecha_entrega'],
                 fechaDevolucionProgramada: $datos['fecha_devolucion_programada'],

@@ -23,6 +23,7 @@ class AlquilerService
         int $clienteId,
         array $productos,
         float $descuento = 0,
+        float $descuentoPorToga = 0,
         ?string $fechaAlquiler = null,
         ?string $fechaEntrega = null,
         ?string $fechaDevolucionProgramada = null,
@@ -34,6 +35,7 @@ class AlquilerService
             $clienteId,
             $productos,
             $descuento,
+            $descuentoPorToga,
             $fechaAlquiler,
             $fechaEntrega,
             $fechaDevolucionProgramada,
@@ -68,12 +70,13 @@ class AlquilerService
                 $items,
                 $descuentoPorToga
             );
-            
-            $descuentoTotal = round($descuentoManual, 2);
+                        
+            $descuentoTotal = round($descuentoManual + $descuentoToga, 2);
 
             $total = $this->discountCalculator->calcularTotal(
                 $subtotal,
-                $descuentoManual
+                $descuentoManual,
+                $descuentoToga
             );
 
             $codigoRecibo = $this->reciboService->generarCodigoRecibo();
@@ -97,8 +100,9 @@ class AlquilerService
                 'estado_pago' => 'PENDIENTE',
                 'subtotal' => $subtotal,
                 'descuento' => $descuentoTotal,
+                'descuento_por_toga' => $descuentoPorToga,
                 'descuento_manual' => $descuentoManual,
-                'descuento_toga' => 0,
+                'descuento_toga' => $descuentoToga,
                 'total' => $total,
                 'saldo_pendiente' => $total,
                 'observaciones' => $observaciones,

@@ -12,7 +12,7 @@ return [
 
     'discounts' => [
         'enabled' => false,
-        'per_toga' => 0.00,
+        'per_toga' => 0,
     ],
 
     'required_accessories' => [

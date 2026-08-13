@@ -23,9 +23,9 @@ class DiscountCalculator
      */
     public function calcularDescuentoPorTogas(
         array $items,
-        float $descuentoPorToga = 0
+        float $descuentoPorToga
     ): float {
-        $descuentoPorToga = max($descuentoPorToga, 0);
+        $descuentoPorToga = max(0, $descuentoPorToga);
 
         if ($descuentoPorToga <= 0) {
             return 0.0;
