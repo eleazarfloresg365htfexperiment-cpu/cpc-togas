@@ -455,6 +455,9 @@
                                     <option value="Naranja" {{ old('borla_color') === 'Naranja' ? 'selected' : '' }}>
                                         Naranja
                                     </option>
+                                    <option value="Dorado" {{ old('borla_color') === 'Dorado' ? 'selected' : '' }}>
+                                        Dorado
+                                    </option>
                                 </select>
                             </div>
 
@@ -664,16 +667,32 @@
 
         function actualizarCamposCollarin() {
 
-            const tipoInput = document.querySelector('input[name="tipo_collarin"]:checked');
-
-            if (!tipoInput || !colorCollarinSelect) return;
-
-            const valorPrevio = colorCollarinSelect.value;
-
-            actualizarOpcionesColorCollarin(tipoInput.value, valorPrevio);
-            actualizarCodigoCollarin();
-
+        if (
+            !tipoProducto ||
+            tipoProducto.value !== 'COLLARIN'
+        ) {
+            return;
         }
+
+        const tipoInput =
+            document.querySelector(
+                'input[name="tipo_collarin"]:checked'
+            );
+
+        if (!tipoInput || !colorCollarinSelect) {
+            return;
+        }
+
+        const valorPrevio =
+            colorCollarinSelect.value;
+
+        actualizarOpcionesColorCollarin(
+            tipoInput.value,
+            valorPrevio
+        );
+
+        actualizarCodigoCollarin();
+    }
 
         document.querySelectorAll('input[name="tipo_collarin"]').forEach(radio => {
 
@@ -686,8 +705,6 @@
             'Rojo': 'C-RO',
             'Verde': 'C-VE',
             'Dorado': 'C-DO',
-            'Negro': 'C-NG',
-            'Blanco': 'C-BL'
         };
 
         const coloresBorla = {
@@ -695,7 +712,8 @@
             'Rojo': 'B-RO',
             'Verde': 'B-VE',
             'Amarillo': 'B-AM',
-            'Naranja': 'B-NA'
+            'Naranja': 'B-NA',
+            'Dorado': 'B-DOR'
         };
 
         const codigoCollarinInput = document.getElementById('codigo_color_collarin');

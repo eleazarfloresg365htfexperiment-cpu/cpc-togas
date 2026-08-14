@@ -1,4 +1,4 @@
-    @extends('layouts.app')
+@extends('layouts.app')
 
     @section('title', 'Nuevo alquiler')
     @section('page_title', '➕ Nuevo alquiler')
@@ -626,12 +626,11 @@
                                                         @foreach($borlas as $borla)
                                                             <option
                                                                 value="{{ $borla->id }}"
-                                                                data-tipo="{{ $borla->borla->tipo_borla }}"
                                                                 data-color="{{ $borla->borla->color ?? '' }}"
                                                                 {{ old("productos.$toga->id.borla_id") == $borla->id ? 'selected' : '' }}
                                                             >
                                                                 {{ $borla->nombre }}
-                                                                ({{ $borla->borla->tipo_borla }} - {{ $borla->borla->color ?? 'Sin color' }})
+                                                                ({{ $borla->borla->color ?? 'Sin color' }})
                                                                 - Disp: {{ $borla->stock_disponible }}
                                                             </option>
                                                         @endforeach
@@ -1347,9 +1346,23 @@
                 const opcion = capaSelect?.selectedOptions?.[0];
                 const carrera = opcion?.dataset?.carrera;
 
+                /*
+                |--------------------------------------------------------------------------
+                | Colores por carrera
+                |--------------------------------------------------------------------------
+                |
+                | DERECHO y AGRONOMIA usan "Rojo" y "Verde" respectivamente, los
+                | mismos nombres de color que usan los collarines normales. Para
+                | evitar que la borla se empareje por accidente con un collarín
+                | normal del mismo color, estos dos casos usan un valor de color
+                | distinto (con sufijo de carrera). Los demás no chocan con nada,
+                | así que se quedan igual.
+                |
+                */
+
                 const coloresPorCarrera = {
-                    'DERECHO': 'Rojo',
-                    'AGRONOMIA': 'Verde',
+                    'DERECHO': 'Rojo-Derecho',
+                    'AGRONOMIA': 'Verde-Agronomia',
                     'PEDAGOGIA': 'Celeste',
                     'MEDICINA': 'Amarillo',
                     'CIENCIAS_ECONOMICAS': 'Naranja'

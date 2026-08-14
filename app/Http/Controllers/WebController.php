@@ -157,7 +157,7 @@ class WebController extends Controller
             'tamano_collarin' => 'nullable|in:PEQUENO,GRANDE',
 
             'borla_codigo_color' => 'nullable|string|max:50',
-            'borla_color' => 'nullable|in:Celeste,Rojo,Verde,Amarillo,Naranja',
+            'borla_color' => 'nullable|in:Dorado,Rojo,Verde,Rojo-Derecho,Verde-Agronomia,Celeste,Amarillo,Naranja',
             'borla_observaciones' => 'nullable|string',
 
             'codigo_color_capa' => 'nullable|string|max:50',
@@ -482,7 +482,7 @@ class WebController extends Controller
 
             // BORLA
             'borla_codigo_color' => 'nullable|string|max:50',
-            'borla_color' => 'nullable|in:Celeste,Rojo,Verde,Amarillo,Naranja',
+            'borla_color' => 'nullable|in:Dorado,Rojo,Verde,Rojo-Derecho,Verde-Agronomia,Celeste,Amarillo,Naranja',
             'borla_observaciones' => 'nullable|string',
 
         ]);
