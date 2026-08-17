@@ -1405,6 +1405,18 @@ class WebController extends Controller
         return view('alquileres.terminos', compact('alquiler'));
     }
 
+    public function devolucionAlquilerWeb($id)
+    {
+        $alquiler = Alquiler::with([
+            'cliente',
+            'detalles.producto',
+            'detalles.producto.toga',
+            'detalles.accesorios.producto',
+        ])->findOrFail($id);
+
+        return view('alquileres.devolucion', compact('alquiler'));
+    }
+
     public function entregarAlquilerWeb($id, AlquilerService $alquilerService)
     {
         try {

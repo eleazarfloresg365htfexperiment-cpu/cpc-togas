@@ -238,6 +238,10 @@
                 📄 Carta de compromiso
             </a>
 
+            <a href="{{ route('alquileres.devolucion-carta', $alquiler->id) }}" class="btn btn-outline-primary rounded-pill">
+                ↩️ Carta de devolución
+            </a>
+
             @if($alquiler->estado !== 'CANCELADO' && $alquiler->saldo_pendiente > 0)
                 <a href="{{ route('pagos.create', $alquiler->id) }}" class="btn btn-success rounded-pill">
                     💰 Registrar pago

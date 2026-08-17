@@ -90,6 +90,8 @@ Route::get('/alquileres-web/{id}/recibo', [WebController::class, 'reciboAlquiler
     ->name('alquileres.recibo');
 Route::get('/alquileres-web/{id}/terminos', [WebController::class, 'terminosAlquilerWeb'])
     ->name('alquileres.terminos');
+Route::get('/alquileres-web/{id}/devolucion', [WebController::class, 'devolucionAlquilerWeb'])
+    ->name('alquileres.devolucion-carta');
 
  //- - - - CONTROL DE ALQUILERES - - - -
 
