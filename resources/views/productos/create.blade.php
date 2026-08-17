@@ -557,6 +557,7 @@
         const camposCapa = document.getElementById('campos-capa');
         const camposBirrete = document.getElementById('campos-birrete');
         const camposCollarin = document.getElementById('campos-collarin');
+        const colorCollarinSelect = document.getElementById('color_collarin');
         const camposBorla = document.getElementById('campos-borla');
 
         const mensajeDetalles = document.getElementById('mensaje-detalles');
@@ -582,6 +583,12 @@
 
             ocultarCampos();
 
+            actualizarEstadoCampos(camposToga, tipo === 'TOGA');
+            actualizarEstadoCampos(camposCapa, tipo === 'CAPA');
+            actualizarEstadoCampos(camposBirrete, tipo === 'BIRRETE');
+            actualizarEstadoCampos(camposCollarin, tipo === 'COLLARIN');
+            actualizarEstadoCampos(camposBorla, tipo === 'BORLA');
+
             if (tipo && mensajeDetalles) {
                 mensajeDetalles.classList.add('d-none');
             }
@@ -602,9 +609,25 @@
                 camposCollarin.classList.remove('d-none');
             }
 
+            if (tipo === 'COLLARIN' && colorCollarinSelect) {
+                colorCollarinSelect.setAttribute('required', 'required');
+            }
+
             if (tipo === 'BORLA' && camposBorla) {
                 camposBorla.classList.remove('d-none');
             }
+        }
+
+        function actualizarEstadoCampos(contenedor, activo) {
+            if (!contenedor) return;
+
+            contenedor.querySelectorAll('input, select, textarea').forEach(campo => {
+                campo.disabled = !activo;
+
+                if (!activo) {
+                    campo.removeAttribute('required');
+                }
+            });
         }
 
         if (tipoProducto) {
@@ -639,8 +662,6 @@
             stockInput.addEventListener('change', actualizarPreviewStock);
             actualizarPreviewStock();
         }
-
-        const colorCollarinSelect = document.getElementById('color_collarin');
 
         const opcionesColorPorTipo = {
             NORMAL: ['Dorado', 'Rojo', 'Verde'],
@@ -716,9 +737,35 @@
             'Dorado': 'B-DOR'
         };
 
+        const datosCapaPorCarrera = {
+            AGRONOMIA: {
+                color: 'Verde',
+                codigo: 'AGR'
+            },
+            DERECHO: {
+                color: 'Rojo',
+                codigo: 'DER'
+            },
+            PEDAGOGIA: {
+                color: 'Celeste',
+                codigo: 'PED'
+            },
+            MEDICINA: {
+                color: 'Amarillo',
+                codigo: 'MED'
+            },
+            CIENCIAS_ECONOMICAS: {
+                color: 'Naranja',
+                codigo: 'ECO'
+            }
+        };
+
         const codigoCollarinInput = document.getElementById('codigo_color_collarin');
         const borlaColorInput = document.getElementById('borla_color');
         const borlaCodigoInput = document.getElementById('borla_codigo_color');
+        const carreraCapaSelect = document.querySelector('select[name="carrera_capa"]');
+        const colorCapaInput = document.querySelector('input[name="color_capa"]');
+        const codigoColorCapaInput = document.querySelector('input[name="codigo_color_capa"]');
 
         function actualizarCodigoCollarin() {
             if (!colorCollarinSelect || !codigoCollarinInput) {
@@ -732,6 +779,31 @@
             } else {
                 codigoCollarinInput.value = '';
             }
+        }
+
+        function actualizarDatosCapa() {
+            if (!carreraCapaSelect) return;
+
+            const datos = datosCapaPorCarrera[carreraCapaSelect.value];
+
+            if (!datos) {
+                if (colorCapaInput) colorCapaInput.value = '';
+                if (codigoColorCapaInput) codigoColorCapaInput.value = '';
+                return;
+            }
+
+            if (colorCapaInput) {
+                colorCapaInput.value = datos.color;
+            }
+
+            if (codigoColorCapaInput) {
+                codigoColorCapaInput.value = datos.codigo;
+            }
+        }
+
+        if (carreraCapaSelect) {
+            carreraCapaSelect.addEventListener('change', actualizarDatosCapa);
+            actualizarDatosCapa();
         }
 
         function actualizarCodigoBorla() {
