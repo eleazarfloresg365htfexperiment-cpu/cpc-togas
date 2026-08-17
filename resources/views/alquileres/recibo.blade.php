@@ -289,10 +289,11 @@
         }
 
         .actions {
-            max-width: 850px;
-            margin: 14px auto;
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            z-index: 99999;
             display: flex;
-            justify-content: flex-end;
             gap: 8px;
         }
 
