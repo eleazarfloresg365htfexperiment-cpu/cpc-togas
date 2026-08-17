@@ -62,6 +62,10 @@
             background-image: url("{{ asset('plantillas/carta-compromiso-p2.png') }}");
         }
 
+        .page-3 {
+            background-image: url("{{asset('plantillas/carta-compromiso-p3.png')}}")
+        }
+
         .campo {
             position: absolute;
             font-family: Arial, sans-serif;
@@ -390,6 +394,73 @@
 
 <div class="sheet page-2">
     {{-- Segunda página: solo plantilla de fondo por ahora --}}
+</div>
+
+<div class="sheet page-3">
+
+    {{-- Fecha --}}
+    <div class="campo campo-center" style="left: 2.10in; top: 1.48in; width: 0.45in;">
+        {{ $fechaActual->format('d') }}
+    </div>
+
+    <div class="campo campo-center" style="left: 3.50in; top: 1.48in; width: 1.00in;">
+        {{ $mesActual }}
+    </div>
+
+    <div class="campo campo-center" style="left: 5.05in; top: 1.48in; width: 0.55in;">
+        {{ $fechaActual->format('Y') }}
+    </div>
+
+    {{-- Hora --}}
+    <div class="campo campo-center" style="left: 6.10in; top: 1.48in; width: 0.75in;">
+        {{ now()->format('H:i') }}
+    </div>
+
+    {{-- Tabla de tallas --}}
+    <div class="campo campo-center campo-bold" style="left: 1.13in; top: 2.78in; width: 0.45in;">
+        {{ $tallas['4'] ?: '' }}
+    </div>
+
+    <div class="campo campo-center campo-bold" style="left: 1.70in; top: 2.78in; width: 0.45in;">
+        {{ $tallas['6'] ?: '' }}
+    </div>
+
+    <div class="campo campo-center campo-bold" style="left: 2.29in; top: 2.78in; width: 0.45in;">
+        {{ $tallas['8'] ?: '' }}
+    </div>
+
+    <div class="campo campo-center campo-bold" style="left: 2.86in; top: 2.78in; width: 0.45in;">
+        {{ $tallas['10'] ?: '' }}
+    </div>
+
+    <div class="campo campo-center campo-bold" style="left: 3.45in; top: 2.78in; width: 0.45in;">
+        {{ $tallas['12'] ?: '' }}
+    </div>
+
+    <div class="campo campo-center campo-bold" style="left: 4.02in; top: 2.78in; width: 0.45in;">
+        {{ $tallas['14'] ?: '' }}
+    </div>
+
+    <div class="campo campo-center campo-bold" style="left: 4.60in; top: 2.78in; width: 0.45in;">
+        {{ $tallas['16'] ?: '' }}
+    </div>
+
+    <div class="campo campo-center campo-bold" style="left: 5.18in; top: 2.78in; width: 0.45in;">
+        {{ $tallas['S'] ?: '' }}
+    </div>
+
+    <div class="campo campo-center campo-bold" style="left: 5.78in; top: 2.78in; width: 0.45in;">
+        {{ $tallas['M'] ?: '' }}
+    </div>
+
+    <div class="campo campo-center campo-bold" style="left: 6.36in; top: 2.78in; width: 0.45in;">
+        {{ $tallas['L'] ?: '' }}
+    </div>
+
+    <div class="campo campo-center campo-bold" style="left: 6.90in; top: 2.78in; width: 0.50in;">
+        {{ $totalTogas ?: '' }}
+    </div>
+
 </div>
 
 </body>
