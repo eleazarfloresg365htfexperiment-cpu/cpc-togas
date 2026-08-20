@@ -281,10 +281,13 @@ class AlquilerService
             $observacionMora,
             $usuarioId
         ) {
-            $alquiler = Alquiler::with('detalles.producto')
+            $alquiler = Alquiler::with([
+                'detalles.producto',
+                'detalles.accesorios.producto',
+            ])
                 ->lockForUpdate()
                 ->findOrFail($alquilerId);
-
+                
             if ($alquiler->estado !== 'ENTREGADO') {
                 throw new Exception('Solo se pueden devolver alquileres que estén entregados.');
             }
