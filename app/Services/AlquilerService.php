@@ -287,7 +287,7 @@ class AlquilerService
             ])
                 ->lockForUpdate()
                 ->findOrFail($alquilerId);
-                
+
             if ($alquiler->estado !== 'ENTREGADO') {
                 throw new Exception('Solo se pueden devolver alquileres que estén entregados.');
             }
@@ -339,38 +339,36 @@ class AlquilerService
             $montoMoraFinal = max($montoMoraCalculado - $descuentoMora, 0);
 
             /*
-            * Devolver inventario alquilado.
+            * Devolver inventario alquilado: toga principal Y accesorios
+            * (collarín, birrete, borla, capa), igual que entregarAlquiler()
+            * hace con registrarAlquiler() para ambos.
             */
             foreach ($alquiler->detalles as $detalle) {
-                $producto = $detalle->producto;
-
-                if (!$producto) {
+                if (!$detalle->producto) {
                     throw new Exception('Uno de los productos del alquiler no existe.');
                 }
 
-                $stockAnteriorDisponible = $producto->stock_disponible;
-                $stockAnteriorAlquilado = $producto->stock_alquilado;
+                $this->inventarioService->registrarDevolucion(
+                    $detalle->producto_id,
+                    $detalle->cantidad,
+                    $alquiler->codigo_recibo,
+                    $usuarioId,
+                    'Devolución de alquiler ' . $alquiler->codigo_recibo
+                );
 
-                $producto->stock_disponible += $detalle->cantidad;
-                $producto->stock_alquilado -= $detalle->cantidad;
+                foreach ($detalle->accesorios as $accesorio) {
+                    if (!$accesorio->producto) {
+                        throw new Exception('Uno de los accesorios del alquiler no existe.');
+                    }
 
-                if ($producto->stock_alquilado < 0) {
-                    throw new Exception('El stock alquilado no puede quedar negativo.');
+                    $this->inventarioService->registrarDevolucion(
+                        $accesorio->producto_id,
+                        $accesorio->cantidad,
+                        $alquiler->codigo_recibo,
+                        $usuarioId,
+                        'Devolución de accesorio ' . $accesorio->tipo_accesorio . ' del alquiler ' . $alquiler->codigo_recibo
+                    );
                 }
-
-                $producto->save();
-
-                $producto->movimientos()->create([
-                    'tipo' => 'ENTRADA',
-                    'cantidad' => $detalle->cantidad,
-                    'stock_anterior_disponible' => $stockAnteriorDisponible,
-                    'stock_nuevo_disponible' => $producto->stock_disponible,
-                    'stock_anterior_alquilado' => $stockAnteriorAlquilado,
-                    'stock_nuevo_alquilado' => $producto->stock_alquilado,
-                    'motivo' => 'Devolución de alquiler',
-                    'observaciones' => 'Devolución del alquiler ' . $alquiler->codigo_recibo,
-                    'usuario_id' => $usuarioId,
-                ]);
             }
 
             /*
@@ -401,7 +399,7 @@ class AlquilerService
 
             $alquiler->save();
 
-            return $alquiler;
+            return $alquiler->fresh();
         });
     }
 }
