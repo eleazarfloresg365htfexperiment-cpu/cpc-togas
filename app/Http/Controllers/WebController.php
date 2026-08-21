@@ -1095,7 +1095,22 @@ class WebController extends Controller
 
     public function guardarAlquilerWeb(Request $request, AlquilerService $alquilerService)
     {
-        $productosFormulario = collect($request->input('productos', []))
+        // IMPORTANTE: aquí NO se debe usar $request->merge() para reemplazar
+        // 'productos', porque eso sobrescribe permanentemente el input original
+        // de la request. Si la validación falla más adelante, withInput() vuelve
+        // a mostrar el formulario usando ese input ya modificado (reindexado
+        // desde 0 y sin las togas no seleccionadas), y como el blade usa
+        // old("productos.$toga->id.campo") con el ID real del producto, ninguna
+        // de esas claves vuelve a coincidir -> el formulario se ve "vacío".
+        //
+        // La solución: filtrar los productos en una variable aparte, sin tocar
+        // $request, y validar ese arreglo filtrado con Validator::make(). Así
+        // withInput() sigue reflejando el input original (con las claves por
+        // ID de producto intactas) si algo sale mal.
+
+        $productosOriginal = $request->input('productos', []);
+
+        $productosFiltrados = collect($productosOriginal)
             ->filter(function ($producto) {
                 return !empty($producto['seleccionado'])
                     && !empty($producto['producto_id'])
@@ -1104,11 +1119,12 @@ class WebController extends Controller
             ->values()
             ->toArray();
 
-        $request->merge([
-            'productos' => $productosFormulario,
-        ]);
+        $datosParaValidar = array_merge(
+            $request->except('productos'),
+            ['productos' => $productosFiltrados]
+        );
 
-        $datos = $request->validate([
+        $validator = \Illuminate\Support\Facades\Validator::make($datosParaValidar, [
             'cliente_id' => ['required', 'exists:clientes,id'],
 
             'fecha_alquiler' => ['required', 'string', 'date', 'before_or_equal:fecha_entrega'],
@@ -1116,7 +1132,7 @@ class WebController extends Controller
             'hora_entrega' => ['nullable', 'date_format:H:i'],
             'fecha_devolucion_programada' => ['required', 'string', 'date', 'after_or_equal:fecha_entrega'],
             'hora_devolucion_programada' => ['nullable', 'date_format:H:i'],
-            
+
             'descuento' => ['nullable', 'numeric', 'min:0'],
             'descuento_por_toga' => ['nullable', 'numeric', 'min:0'],
             'observaciones' => ['nullable', 'string', 'max:500'],
@@ -1137,7 +1153,7 @@ class WebController extends Controller
             'productos.*.cantidad' => ['required', 'integer', 'min:1'],
 
             'productos.*.collarin_id' => ['required', 'exists:productos,id'],
-            'productos.*.capa_id' => ['nullable', 'exists:productos,id'],   
+            'productos.*.capa_id' => ['nullable', 'exists:productos,id'],
 
             'productos.*.birrete_incluido' => ['nullable'],
             'productos.*.birrete_id' => ['nullable', 'exists:productos,id'],
@@ -1168,6 +1184,14 @@ class WebController extends Controller
             'productos.*.birrete_extra_cantidad.min' => 'La cantidad de birretes extra debe ser al menos 1.',
             'productos.*.borla_extra_cantidad.min' => 'La cantidad de borlas extra debe ser al menos 1.',
         ]);
+
+        if ($validator->fails()) {
+            return back()
+                ->withErrors($validator)
+                ->withInput();
+        }
+
+        $datos = $validator->validated();
 
         if (
             $request->fecha_entrega === $request->fecha_devolucion_programada &&
@@ -1358,7 +1382,6 @@ class WebController extends Controller
                 ->withInput();
         }
     }
-
 
     public function verAlquilerWeb($id)
     {
