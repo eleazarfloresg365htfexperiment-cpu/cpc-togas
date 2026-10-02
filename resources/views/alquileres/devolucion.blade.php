@@ -43,6 +43,15 @@
             color: #0d6efd;
         }
 
+        .toolbar .badge-tipo {
+            background: #fff;
+            color: #374151;
+            border: 1px solid #d1d5db;
+            padding: 8px 14px;
+            border-radius: 999px;
+            font-size: 13px;
+        }
+
         .sheet {
             width: 8.5in;
             height: 11in;
@@ -54,8 +63,12 @@
             page-break-after: always;
         }
 
-        .page-1 {
-            background-image: url("{{ asset('plantillas/carta-compromiso-p3.png') }}");
+        .devolucion-normal {
+            background-image: url("{{ asset('plantillas/carta-devolucion-normal.png') }}");
+        }
+
+        .devolucion-universitaria {
+            background-image: url("{{ asset('plantillas/carta-devolucion-universitaria.png') }}");
         }
 
         .campo {
@@ -110,11 +123,6 @@
 </head>
 <body>
 
-<div class="toolbar">
-    <a href="{{ route('alquileres.show', $alquiler->id) }}">← Volver</a>
-    <button type="button" onclick="window.print()">Imprimir documento</button>
-</div>
-
 @php
     // Fecha/hora del acta: si ya se registró la devolución real se usa esa,
     // si no, se usa el momento en que se abre/imprime la carta.
@@ -128,11 +136,34 @@
 
     $mesActa = $meses[(int) $fechaActa->format('n')] ?? '';
 
-    // Tabla de tallas: misma lógica que la página 1 de la carta de compromiso.
-    $tallas = [
-        '4' => 0, '6' => 0, '8' => 0, '10' => 0, '12' => 0,
-        '14' => 0, '16' => 0, 'S' => 0, 'M' => 0, 'L' => 0,
-    ];
+    /*
+    |--------------------------------------------------------------------------
+    | Tallas y detalles por tipo de toga
+    |--------------------------------------------------------------------------
+    | producto_togas.tipo_toga es enum('ESTANDAR','UNIVERSITARIA').
+    | Cada carta se imprime solo con las togas de su tipo.
+    */
+    $normalizarTalla = fn ($t) => match (strtoupper(trim((string) $t))) {
+        '4' => '4',
+        '6' => '6',
+        '8' => '8',
+        '10' => '10',
+        '12' => '12',
+        '14' => '14',
+        '16', '16 (XS)', 'XS' => '16',
+        'S' => 'S',
+        'M' => 'M',
+        'L' => 'L',
+        default => null,
+    };
+
+    $tallasBase = array_fill_keys(['4', '6', '8', '10', '12', '14', '16', 'S', 'M', 'L'], 0);
+
+    $tallasNormal = $tallasBase;
+    $tallasUniversitaria = $tallasBase;
+
+    $detallesNormal = collect();
+    $detallesUniversitaria = collect();
 
     foreach ($alquiler->detalles as $detalle) {
         $producto = $detalle->producto;
@@ -141,116 +172,85 @@
             continue;
         }
 
-        $tallaOriginal = strtoupper(trim($producto->toga->talla ?? ''));
+        $esUniversitaria = strtoupper($producto->toga->tipo_toga ?? '') === 'UNIVERSITARIA';
 
-        $tallaNormalizada = match ($tallaOriginal) {
-            '4' => '4', '6' => '6', '8' => '8', '10' => '10', '12' => '12',
-            '14' => '14', '16', '16 (XS)', 'XS' => '16',
-            'S' => 'S', 'M' => 'M', 'L' => 'L',
-            default => null,
-        };
+        if ($esUniversitaria) {
+            $detallesUniversitaria->push($detalle);
+        } else {
+            $detallesNormal->push($detalle);
+        }
 
-        if ($tallaNormalizada && array_key_exists($tallaNormalizada, $tallas)) {
-            $tallas[$tallaNormalizada] += (int) $detalle->cantidad;
+        $talla = $normalizarTalla($producto->toga->talla ?? '');
+
+        if (!$talla) {
+            continue;
+        }
+
+        $cantidad = (int) $detalle->cantidad;
+
+        if ($esUniversitaria) {
+            $tallasUniversitaria[$talla] += $cantidad;
+        } else {
+            $tallasNormal[$talla] += $cantidad;
         }
     }
 
-    $totalTogas = array_sum($tallas);
+    $totalNormales = array_sum($tallasNormal);
+    $totalUniversitarias = array_sum($tallasUniversitaria);
 
-    // "¿Incluyen birrete y collarín?" - se marca SI solo si TODAS las togas
-    // del alquiler tienen al menos un birrete y un collarín entre sus accesorios.
-    $incluyeBirreteYCollarin = $alquiler->detalles->isNotEmpty()
-        && $alquiler->detalles->every(function ($detalle) {
-            $accesorios = collect($detalle->accesorios ?? []);
+    /*
+    |--------------------------------------------------------------------------
+    | ¿Incluyen birrete y collarín?
+    |--------------------------------------------------------------------------
+    | Se marca SI solo si TODAS las togas de ese tipo tienen al menos un
+    | birrete y un collarín entre sus accesorios.
+    */
+    $tieneAccesorio = fn ($detalle, $tipo) => collect($detalle->accesorios ?? [])->contains(
+        fn ($a) => ($a->producto->tipo_producto ?? null) === $tipo
+    );
 
-            $tieneBirrete = $accesorios->contains(
-                fn ($a) => ($a->producto->tipo_producto ?? null) === 'BIRRETE'
-            );
+    $verificarBirreteYCollarin = fn ($detalles) => $detalles->isNotEmpty()
+        && $detalles->every(
+            fn ($d) => $tieneAccesorio($d, 'BIRRETE') && $tieneAccesorio($d, 'COLLARIN')
+        );
 
-            $tieneCollarin = $accesorios->contains(
-                fn ($a) => ($a->producto->tipo_producto ?? null) === 'COLLARIN'
-            );
+    $incluyeNormal = $verificarBirreteYCollarin($detallesNormal);
+    $incluyeUniversitaria = $verificarBirreteYCollarin($detallesUniversitaria);
 
-            return $tieneBirrete && $tieneCollarin;
-        });
+    // Si no hay ninguna toga, se imprime la carta normal para no dejar el documento vacío.
+    $imprimirNormal = $totalNormales > 0 || $totalUniversitarias === 0;
+    $imprimirUniversitaria = $totalUniversitarias > 0;
+
+    $etiquetaTipo = match (true) {
+        $imprimirNormal && $imprimirUniversitaria => 'Normal + Universitaria',
+        $imprimirUniversitaria => 'Universitaria',
+        default => 'Normal',
+    };
 @endphp
 
-<div class="sheet page-1">
-
-    {{-- Fecha del acta --}}
-    <div class="campo campo-center" style="left: 2.20in; top: 1.48in; width: 0.30in;">
-        {{ $fechaActa->format('d') }}
-    </div>
-
-    <div class="campo" style="left: 3.85in; top: 1.48in; width: 0.85in;">
-        {{ $mesActa }}
-    </div>
-
-    <div class="campo campo-center" style="left: 5.08in; top: 1.48in; width: 0.45in;">
-        {{ $fechaActa->format('Y') }}
-    </div>
-
-    <div class="campo campo-center" style="left: 6.22in; top: 1.48in; width: 0.58in;">
-        {{ $fechaActa->format('H:i') }}
-    </div>
-
-    {{-- Tabla de tallas devueltas --}}
-    <div class="campo campo-center campo-bold" style="left: 1.13in; top: 2.75in; width: 0.45in;">
-        {{ $tallas['4'] ?: '' }}
-    </div>
-
-    <div class="campo campo-center campo-bold" style="left: 1.70in; top: 2.75in; width: 0.45in;">
-        {{ $tallas['6'] ?: '' }}
-    </div>
-
-    <div class="campo campo-center campo-bold" style="left: 2.29in; top: 2.75in; width: 0.45in;">
-        {{ $tallas['8'] ?: '' }}
-    </div>
-
-    <div class="campo campo-center campo-bold" style="left: 2.86in; top: 2.75in; width: 0.45in;">
-        {{ $tallas['10'] ?: '' }}
-    </div>
-
-    <div class="campo campo-center campo-bold" style="left: 3.45in; top: 2.75in; width: 0.45in;">
-        {{ $tallas['12'] ?: '' }}
-    </div>
-
-    <div class="campo campo-center campo-bold" style="left: 4.02in; top: 2.75in; width: 0.45in;">
-        {{ $tallas['14'] ?: '' }}
-    </div>
-
-    <div class="campo campo-center campo-bold" style="left: 4.60in; top: 2.75in; width: 0.45in;">
-        {{ $tallas['16'] ?: '' }}
-    </div>
-
-    <div class="campo campo-center campo-bold" style="left: 5.18in; top: 2.75in; width: 0.45in;">
-        {{ $tallas['S'] ?: '' }}
-    </div>
-
-    <div class="campo campo-center campo-bold" style="left: 5.78in; top: 2.75in; width: 0.45in;">
-        {{ $tallas['M'] ?: '' }}
-    </div>
-
-    <div class="campo campo-center campo-bold" style="left: 6.36in; top: 2.75in; width: 0.45in;">
-        {{ $tallas['L'] ?: '' }}
-    </div>
-
-    <div class="campo campo-center campo-bold" style="left: 6.90in; top: 2.75in; width: 0.50in;">
-        {{ $totalTogas ?: '' }}
-    </div>
-
-    {{-- ¿Incluyen birrete y collarín? --}}
-    @if(!$incluyeBirreteYCollarin)
-        <div class="campo-check" style="left: 1.36in; top: 3.10in; width: 0.14in;">
-            ✓
-        </div>
-    @else
-        <div class="campo-check" style="left: 1.63in; top: 3.10in; width: 0.14in;">
-            ✓
-        </div>
-    @endif
-
+<div class="toolbar">
+    <span class="badge-tipo">Devolución: {{ $etiquetaTipo }}</span>
+    <a href="{{ route('alquileres.show', $alquiler->id) }}">← Volver</a>
+    <button type="button" onclick="window.print()">Imprimir documento</button>
 </div>
+
+{{-- Carta de devolución para togas normales --}}
+@if($imprimirNormal)
+    @include('alquileres.cartas.devolucion-normal', [
+        'tallas'                  => $tallasNormal,
+        'totalTogas'              => $totalNormales,
+        'incluyeBirreteYCollarin' => $incluyeNormal,
+    ])
+@endif
+
+{{-- Carta de devolución para togas universitarias --}}
+@if($imprimirUniversitaria)
+    @include('alquileres.cartas.devolucion-universitaria', [
+        'tallas'                  => $tallasUniversitaria,
+        'totalTogas'              => $totalUniversitarias,
+        'incluyeBirreteYCollarin' => $incluyeUniversitaria,
+    ])
+@endif
 
 </body>
 </html>
