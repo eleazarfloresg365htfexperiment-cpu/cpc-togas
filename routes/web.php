@@ -79,6 +79,14 @@ Route::post('/alquileres-web/{id}/devolver', [WebController::class, 'devolverAlq
     ->name('alquileres.devolver');
 Route::post('/alquileres-web/{id}/cancelar', [WebController::class, 'cancelarAlquilerWeb'])
     ->name('alquileres.cancelar');
+Route::get('/alquileres-web/{id}/editar', [WebController::class, 'editarAlquilerWeb'])
+    ->name('alquileres.edit');
+Route::put('/alquileres-web/{id}', [WebController::class, 'actualizarAlquilerWeb'])
+    ->name('alquileres.update');
+Route::post('/alquileres-web/{id}/danos', [WebController::class, 'guardarDanoAlquilerWeb'])
+    ->name('alquileres.danos.store');
+Route::delete('/alquileres-web/{id}/danos/{danoId}', [WebController::class, 'eliminarDanoAlquilerWeb'])
+    ->name('alquileres.danos.destroy');
 
  //- - - - PAGOS - - - -
 

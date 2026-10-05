@@ -296,22 +296,29 @@
                                             </button>
                                         </form>
 
-                                        @if($alquiler->saldo_pendiente <= 0)
-                                            <form action="{{ route('alquileres.cancelar', $alquiler->id) }}"
-                                                  method="POST"
-                                                  class="d-inline confirm-action-form"
-                                                  data-title="¿Cancelar alquiler?"
-                                                  data-text="El alquiler será marcado como CANCELADO. Esta acción solo debe hacerse si no corresponde continuar con la reserva."
-                                                  data-icon="warning"
-                                                  data-confirm="Sí, cancelar"
-                                                  data-cancel="Volver">
-                                                @csrf
+                                    @endif
 
-                                                <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill action-main-btn">
-                                                    ❌ Cancelar
-                                                </button>
-                                            </form>
-                                        @endif
+                                    @if($alquiler->puedeEditarse())
+                                        <a href="{{ route('alquileres.edit', $alquiler->id) }}"
+                                           class="btn btn-sm btn-outline-dark rounded-pill action-main-btn">
+                                            ✏️ Editar
+                                        </a>
+                                    @endif
+
+                                    @if($alquiler->puedeCancelarse())
+                                        <form action="{{ route('alquileres.cancelar', $alquiler->id) }}"
+                                              method="POST"
+                                              class="d-inline form-cancelar-alquiler"
+                                              data-recibo="{{ $alquiler->codigo_recibo }}"
+                                              data-pagado="{{ number_format((float) $alquiler->pagos->sum('monto'), 2, '.', '') }}">
+                                            @csrf
+                                            <input type="hidden" name="motivo_cancelacion">
+                                            <input type="hidden" name="responsable">
+
+                                            <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill action-main-btn">
+                                                ❌ Cancelar
+                                            </button>
+                                        </form>
                                     @endif
 
                                     @if($alquiler->estado === 'ENTREGADO')
@@ -346,5 +353,59 @@
     @endif
 
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.form-cancelar-alquiler').forEach(function (form) {
+            form.addEventListener('submit', function (event) {
+                event.preventDefault();
+
+                const pagado = Number(form.dataset.pagado || 0);
+                const avisoPagos = pagado > 0
+                    ? `<div class="alert alert-warning text-start small mb-3">
+                           Tiene <strong>Q ${pagado.toFixed(2)}</strong> en pagos, que quedarán
+                           <strong>retenidos, sin reembolso</strong>.
+                       </div>`
+                    : '';
+
+                Swal.fire({
+                    title: `¿Cancelar el alquiler ${form.dataset.recibo}?`,
+                    html: `${avisoPagos}
+                        <textarea id="swalMotivoIdx" class="swal2-textarea m-0 w-100" rows="3"
+                                  placeholder="Motivo de la cancelación (obligatorio)"></textarea>
+                        <input id="swalResponsableIdx" class="swal2-input m-0 mt-2 w-100"
+                               placeholder="Quién cancela (opcional)">`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Sí, cancelar',
+                    cancelButtonText: 'Volver',
+                    confirmButtonColor: '#dc3545',
+                    cancelButtonColor: '#6c757d',
+                    reverseButtons: true,
+                    focusConfirm: false,
+                    preConfirm: () => {
+                        const motivo = document.getElementById('swalMotivoIdx').value.trim();
+
+                        if (!motivo) {
+                            Swal.showValidationMessage('Escribe el motivo de la cancelación.');
+                            return false;
+                        }
+
+                        return {
+                            motivo,
+                            responsable: document.getElementById('swalResponsableIdx').value.trim(),
+                        };
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        form.querySelector('[name="motivo_cancelacion"]').value = result.value.motivo;
+                        form.querySelector('[name="responsable"]').value = result.value.responsable;
+                        form.submit();
+                    }
+                });
+            });
+        });
+    });
+</script>
 
 @endsection

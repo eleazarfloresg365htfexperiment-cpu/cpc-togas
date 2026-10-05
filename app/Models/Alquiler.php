@@ -40,6 +40,9 @@ class Alquiler extends Model
 
         'estado',
         'estado_pago',
+        'fecha_cancelacion',
+        'motivo_cancelacion',
+        'monto_danos',
 
         'subtotal',
         'descuento',
@@ -60,6 +63,7 @@ class Alquiler extends Model
         'fecha_devolucion_programada' => 'date',
         'fecha_devolucion_real' => 'date',
         'fecha_hora_devolucion_real' => 'datetime',
+        'fecha_cancelacion' => 'datetime',
         'fecha_limite_pago_final' => 'date',
 
         'hora_entrega_inicio' => 'datetime:H:i',
@@ -76,6 +80,7 @@ class Alquiler extends Model
         'monto_mora_calculado' => 'decimal:2',
         'descuento_mora' => 'decimal:2',
         'monto_mora' => 'decimal:2',
+        'monto_danos' => 'decimal:2',
         'saldo_pendiente' => 'decimal:2',
     ];
 
@@ -97,6 +102,50 @@ class Alquiler extends Model
     public function pagos()
     {
         return $this->hasMany(Pago::class, 'alquiler_id');
+    }
+
+    public function historial()
+    {
+        return $this->hasMany(AlquilerHistorial::class, 'alquiler_id')->latest('id');
+    }
+
+    public function danos()
+    {
+        return $this->hasMany(AlquilerDano::class, 'alquiler_id')->latest('id');
+    }
+
+    /**
+     * Estados en los que el alquiler todavía no ha salido del local
+     * y por lo tanto se puede cancelar o editar por completo.
+     */
+    public const ESTADOS_ANTES_DE_ENTREGA = ['RESERVADO', 'EN_FABRICACION', 'LISTO_PARA_ENTREGA'];
+
+    public function puedeCancelarse(): bool
+    {
+        return in_array($this->estado, self::ESTADOS_ANTES_DE_ENTREGA, true);
+    }
+
+    public function puedeEditarse(): bool
+    {
+        return $this->puedeCancelarse() || $this->estado === 'ENTREGADO';
+    }
+
+    /**
+     * Con el alquiler ya entregado solo se puede mover la devolución.
+     */
+    public function soloEditaDevolucion(): bool
+    {
+        return $this->estado === 'ENTREGADO';
+    }
+
+    public function puedeRegistrarDanos(): bool
+    {
+        return $this->estado === 'DEVUELTO';
+    }
+
+    public function totalPagado(): float
+    {
+        return (float) $this->pagos->sum('monto');
     }
 
     public function usuario()

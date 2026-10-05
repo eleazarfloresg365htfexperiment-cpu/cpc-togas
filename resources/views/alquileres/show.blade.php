@@ -242,6 +242,12 @@
                 ↩️ Carta de devolución
             </a>
 
+            @if($alquiler->puedeEditarse())
+                <a href="{{ route('alquileres.edit', $alquiler->id) }}" class="btn btn-outline-dark rounded-pill">
+                    ✏️ {{ $alquiler->soloEditaDevolucion() ? 'Cambiar devolución' : 'Editar' }}
+                </a>
+            @endif
+
             @if($alquiler->estado !== 'CANCELADO' && $alquiler->saldo_pendiente > 0)
                 <a href="{{ route('pagos.create', $alquiler->id) }}" class="btn btn-success rounded-pill">
                     💰 Registrar pago
@@ -259,6 +265,36 @@
     @if(session('error'))
         <div class="alert alert-danger rounded-4">
             {{ session('error') }}
+        </div>
+    @endif
+
+    @if($errors->any())
+        <div class="alert alert-danger rounded-4">
+            <ul class="mb-0">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
+    @if($alquiler->estado === 'CANCELADO')
+        @php
+            $pagadoCancelado = (float) $alquiler->pagos->sum('monto');
+        @endphp
+        <div class="alert alert-danger rounded-4">
+            <div class="fw-bold mb-1">❌ Alquiler cancelado</div>
+            @if($alquiler->fecha_cancelacion)
+                <div>Fecha: {{ $alquiler->fecha_cancelacion->format('d/m/Y h:i A') }}</div>
+            @endif
+            @if($alquiler->motivo_cancelacion)
+                <div>Motivo: {{ $alquiler->motivo_cancelacion }}</div>
+            @endif
+            @if($pagadoCancelado > 0)
+                <div class="mt-1">
+                    Pagos retenidos sin reembolso: <strong>Q {{ number_format($pagadoCancelado, 2) }}</strong>
+                </div>
+            @endif
         </div>
     @endif
 
@@ -577,6 +613,13 @@
                             <div class="resumen-cobro-linea">
                                 <span>Mora por devolución tardía</span>
                                 <strong>Q {{ number_format((float) $alquiler->monto_mora, 2) }}</strong>
+                            </div>
+                        @endif
+
+                        @if(($alquiler->monto_danos ?? 0) > 0)
+                            <div class="resumen-cobro-linea">
+                                <span>Daños y extravíos</span>
+                                <strong>Q {{ number_format((float) $alquiler->monto_danos, 2) }}</strong>
                             </div>
                         @endif
 
@@ -940,6 +983,8 @@
         </div>
     </div>
 
+    @include('alquileres.partials.danos')
+
     {{-- PAGOS --}}
     <div class="row g-4 mt-1">
         <div class="col-12">
@@ -1021,6 +1066,8 @@
             </div>
         </div>
     @endif
+
+    @include('alquileres.partials.historial')
 
     {{-- ACCIONES --}}
     <div class="row g-4 mt-1 mb-4">
@@ -1223,17 +1270,81 @@
                         </script>
                     @endif
 
-                    @if($alquiler->estado === 'RESERVADO')
+                    @if($alquiler->puedeCancelarse())
+                        @php
+                            $pagadoActual = (float) $alquiler->pagos->sum('monto');
+                        @endphp
                         <form
+                            id="formCancelarAlquiler"
                             action="{{ route('alquileres.cancelar', $alquiler->id) }}"
                             method="POST"
-                            onsubmit="return confirm('¿Seguro que deseas cancelar este alquiler?');"
+                            data-pagado="{{ number_format($pagadoActual, 2, '.', '') }}"
                         >
                             @csrf
+                            <input type="hidden" name="motivo_cancelacion" id="motivo_cancelacion">
+                            <input type="hidden" name="responsable" id="responsable_cancelacion">
                             <button type="submit" class="btn btn-outline-danger rounded-pill">
                                 ❌ Cancelar alquiler
                             </button>
                         </form>
+
+                        <script>
+                            document.addEventListener('DOMContentLoaded', function () {
+                                const form = document.getElementById('formCancelarAlquiler');
+
+                                if (!form) {
+                                    return;
+                                }
+
+                                form.addEventListener('submit', function (event) {
+                                    event.preventDefault();
+
+                                    const pagado = Number(form.dataset.pagado || 0);
+                                    const avisoPagos = pagado > 0
+                                        ? `<div class="alert alert-warning text-start small mb-3">
+                                               Este alquiler tiene <strong>Q ${pagado.toFixed(2)}</strong> en pagos.
+                                               Quedarán <strong>retenidos, sin reembolso</strong>, y el saldo pendiente pasará a Q 0.00.
+                                           </div>`
+                                        : '';
+
+                                    Swal.fire({
+                                        title: '¿Cancelar este alquiler?',
+                                        html: `${avisoPagos}
+                                            <textarea id="swalMotivo" class="swal2-textarea m-0 w-100" rows="3"
+                                                      placeholder="Motivo de la cancelación (obligatorio)"></textarea>
+                                            <input id="swalResponsable" class="swal2-input m-0 mt-2 w-100"
+                                                   placeholder="Quién cancela (opcional)">`,
+                                        icon: 'warning',
+                                        showCancelButton: true,
+                                        confirmButtonText: 'Sí, cancelar alquiler',
+                                        cancelButtonText: 'Volver',
+                                        confirmButtonColor: '#dc3545',
+                                        cancelButtonColor: '#6c757d',
+                                        reverseButtons: true,
+                                        focusConfirm: false,
+                                        preConfirm: () => {
+                                            const motivo = document.getElementById('swalMotivo').value.trim();
+
+                                            if (!motivo) {
+                                                Swal.showValidationMessage('Escribe el motivo de la cancelación.');
+                                                return false;
+                                            }
+
+                                            return {
+                                                motivo,
+                                                responsable: document.getElementById('swalResponsable').value.trim(),
+                                            };
+                                        }
+                                    }).then((result) => {
+                                        if (result.isConfirmed) {
+                                            document.getElementById('motivo_cancelacion').value = result.value.motivo;
+                                            document.getElementById('responsable_cancelacion').value = result.value.responsable;
+                                            form.submit();
+                                        }
+                                    });
+                                });
+                            });
+                        </script>
                     @endif
 
                     <a href="{{ route('alquileres.web') }}" class="btn btn-outline-secondary rounded-pill">

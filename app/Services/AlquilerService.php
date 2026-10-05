@@ -5,7 +5,10 @@ namespace App\Services;
 use App\Models\Alquiler;
 use App\Models\AlquilerDetalle;
 use App\Models\AlquilerDetalleAccesorio;
+use App\Models\AlquilerDano;
+use App\Models\AlquilerHistorial;
 use App\Models\Producto;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Exception;
 
@@ -401,5 +404,542 @@ class AlquilerService
 
             return $alquiler->fresh();
         });
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | CANCELACIÓN
+    |--------------------------------------------------------------------------
+    | Se permite aunque el alquiler ya tenga pagos. Los pagos NO se reembolsan
+    | (cláusula de devolución monetaria): quedan registrados en el historial de
+    | pagos y el saldo pendiente pasa a cero.
+    */
+    public function cancelarAlquiler(
+        int $alquilerId,
+        string $motivo,
+        ?string $responsable = null,
+        ?int $usuarioId = null
+    ): Alquiler {
+        return DB::transaction(function () use ($alquilerId, $motivo, $responsable, $usuarioId) {
+            $alquiler = Alquiler::with(['pagos', 'detalles', 'fabricaciones'])
+                ->lockForUpdate()
+                ->findOrFail($alquilerId);
+
+            if ($alquiler->estado === 'CANCELADO') {
+                throw new Exception('Este alquiler ya está cancelado.');
+            }
+
+            if ($alquiler->estado === 'ENTREGADO') {
+                throw new Exception('No se puede cancelar un alquiler entregado: las togas están con el cliente. Registra primero la devolución.');
+            }
+
+            if (!$alquiler->puedeCancelarse()) {
+                throw new Exception('No se puede cancelar un alquiler en estado ' . $alquiler->estado . '.');
+            }
+
+            $motivo = trim($motivo);
+
+            if ($motivo === '') {
+                throw new Exception('Debes indicar el motivo de la cancelación.');
+            }
+
+            $estadoAnterior = $alquiler->estado;
+            $totalPagado = round($alquiler->totalPagado(), 2);
+            $saldoAnterior = round((float) $alquiler->saldo_pendiente, 2);
+
+            $alquiler->estado = 'CANCELADO';
+            $alquiler->fecha_cancelacion = now();
+            $alquiler->motivo_cancelacion = $motivo;
+            $alquiler->saldo_pendiente = 0;
+
+            if ($alquiler->pagos->isEmpty()) {
+                $alquiler->estado_pago = 'PENDIENTE';
+            }
+
+            $alquiler->save();
+
+            foreach ($alquiler->detalles as $detalle) {
+                $detalle->estado = 'CANCELADO';
+                $detalle->save();
+            }
+
+            foreach ($alquiler->fabricaciones as $fabricacion) {
+                if ((int) $fabricacion->cantidad_pendiente > 0) {
+                    $fabricacion->estado = 'CANCELADO';
+                    $fabricacion->save();
+                }
+            }
+
+            $this->registrarHistorial(
+                $alquiler,
+                'CANCELACION',
+                'estado',
+                $estadoAnterior,
+                'CANCELADO (pagos retenidos: Q' . number_format($totalPagado, 2) .
+                    ', saldo anulado: Q' . number_format($saldoAnterior, 2) . ')',
+                $motivo,
+                $responsable,
+                $usuarioId
+            );
+
+            return $alquiler->fresh();
+        });
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | EDICIÓN
+    |--------------------------------------------------------------------------
+    | Antes de la entrega se pueden cambiar fechas, horas y datos de la carta.
+    | Ya entregado, solo la fecha y hora de devolución.
+    | Productos, cantidades y montos NO se editan aquí.
+    | Cada campo modificado queda en el historial con valor anterior y nuevo.
+    */
+    public const CAMPOS_EDITABLES = [
+        'fecha_entrega',
+        'hora_entrega',
+        'fecha_devolucion_programada',
+        'hora_devolucion_programada',
+        'hora_entrega_inicio',
+        'hora_entrega_fin',
+        'institucion_representada',
+        'representante_alquiler',
+        'fecha_limite_pago_final',
+        'observaciones',
+    ];
+
+    public const CAMPOS_EDITABLES_ENTREGADO = [
+        'fecha_devolucion_programada',
+        'hora_devolucion_programada',
+    ];
+
+    protected const CAMPOS_FECHA = [
+        'fecha_alquiler',
+        'fecha_entrega',
+        'fecha_devolucion_programada',
+        'fecha_limite_pago_final',
+    ];
+
+    protected const CAMPOS_HORA = [
+        'hora_entrega',
+        'hora_devolucion_programada',
+        'hora_entrega_inicio',
+        'hora_entrega_fin',
+    ];
+
+    public function camposEditables(Alquiler $alquiler): array
+    {
+        return $alquiler->soloEditaDevolucion()
+            ? self::CAMPOS_EDITABLES_ENTREGADO
+            : self::CAMPOS_EDITABLES;
+    }
+
+    public function actualizarAlquiler(
+        int $alquilerId,
+        array $datos,
+        string $motivo,
+        ?string $responsable = null,
+        ?int $usuarioId = null
+    ): Alquiler {
+        return DB::transaction(function () use ($alquilerId, $datos, $motivo, $responsable, $usuarioId) {
+            $alquiler = Alquiler::lockForUpdate()->findOrFail($alquilerId);
+
+            if (!$alquiler->puedeEditarse()) {
+                throw new Exception('No se puede editar un alquiler en estado ' . $alquiler->estado . '.');
+            }
+
+            $motivo = trim($motivo);
+
+            if ($motivo === '') {
+                throw new Exception('Debes indicar el motivo del cambio.');
+            }
+
+            $campos = $this->camposEditables($alquiler);
+
+            // Valores finales (los nuevos donde vienen, los actuales donde no).
+            $actuales = [];
+            $nuevos = [];
+
+            foreach (array_merge($campos, ['fecha_alquiler', 'fecha_entrega', 'hora_entrega_inicio', 'hora_entrega_fin']) as $campo) {
+                $actuales[$campo] = $this->normalizarValor($campo, $alquiler->getRawOriginal($campo));
+            }
+
+            foreach ($campos as $campo) {
+                $nuevos[$campo] = array_key_exists($campo, $datos)
+                    ? $this->normalizarValor($campo, $datos[$campo])
+                    : $actuales[$campo];
+            }
+
+            $final = array_merge($actuales, $nuevos);
+
+            $this->validarFechasYHoras($alquiler, $final);
+
+            $cambios = [];
+
+            foreach ($campos as $campo) {
+                if ($actuales[$campo] !== $nuevos[$campo]) {
+                    $cambios[$campo] = [$actuales[$campo], $nuevos[$campo]];
+                }
+            }
+
+            if (empty($cambios)) {
+                throw new Exception('No se detectaron cambios en el alquiler.');
+            }
+
+            foreach ($cambios as $campo => [$anterior, $nuevo]) {
+                $alquiler->{$campo} = $nuevo;
+            }
+
+            $alquiler->save();
+
+            foreach ($cambios as $campo => [$anterior, $nuevo]) {
+                $this->registrarHistorial(
+                    $alquiler,
+                    'EDICION',
+                    $campo,
+                    $this->formatearValor($campo, $anterior),
+                    $this->formatearValor($campo, $nuevo),
+                    $motivo,
+                    $responsable,
+                    $usuarioId
+                );
+            }
+
+            return $alquiler->fresh();
+        });
+    }
+
+    protected function validarFechasYHoras(Alquiler $alquiler, array $final): void
+    {
+        $fechaAlquiler = $final['fecha_alquiler'] ?? null;
+        $fechaEntrega = $final['fecha_entrega'] ?? null;
+        $fechaDevolucion = $final['fecha_devolucion_programada'] ?? null;
+
+        if (!$alquiler->soloEditaDevolucion() && !$fechaEntrega) {
+            throw new Exception('La fecha de entrega es obligatoria.');
+        }
+
+        if (!$fechaDevolucion) {
+            throw new Exception('La fecha de devolución es obligatoria.');
+        }
+
+        if ($fechaAlquiler && $fechaEntrega && $fechaEntrega < $fechaAlquiler) {
+            throw new Exception('La fecha de entrega no puede ser anterior a la fecha de reserva (' . $this->formatearValor('fecha_alquiler', $fechaAlquiler) . ').');
+        }
+
+        if ($fechaEntrega && $fechaDevolucion < $fechaEntrega) {
+            throw new Exception('La fecha de devolución no puede ser anterior a la fecha de entrega (' . $this->formatearValor('fecha_entrega', $fechaEntrega) . ').');
+        }
+
+        $inicio = $final['hora_entrega_inicio'] ?? null;
+        $fin = $final['hora_entrega_fin'] ?? null;
+
+        if ($inicio && $fin && $fin < $inicio) {
+            throw new Exception('La hora final de recogida no puede ser anterior a la hora inicial.');
+        }
+    }
+
+    /**
+     * Lleva fechas a Y-m-d, horas a H:i y textos vacíos a null,
+     * para comparar lo guardado con lo enviado sin falsos cambios.
+     */
+    protected function normalizarValor(string $campo, $valor): ?string
+    {
+        if ($valor instanceof \DateTimeInterface) {
+            $valor = Carbon::instance($valor);
+        }
+
+        if ($valor === null || (is_string($valor) && trim($valor) === '')) {
+            return null;
+        }
+
+        try {
+            if (in_array($campo, self::CAMPOS_FECHA, true)) {
+                return Carbon::parse($valor)->format('Y-m-d');
+            }
+
+            if (in_array($campo, self::CAMPOS_HORA, true)) {
+                return Carbon::parse($valor)->format('H:i');
+            }
+        } catch (\Throwable $e) {
+            throw new Exception('El valor de "' . (AlquilerHistorial::ETIQUETAS_CAMPOS[$campo] ?? $campo) . '" no es válido.');
+        }
+
+        return trim((string) $valor);
+    }
+
+    protected function formatearValor(string $campo, ?string $valor): ?string
+    {
+        if ($valor === null) {
+            return null;
+        }
+
+        if (in_array($campo, self::CAMPOS_FECHA, true)) {
+            return Carbon::parse($valor)->format('d/m/Y');
+        }
+
+        if (in_array($campo, self::CAMPOS_HORA, true)) {
+            return Carbon::parse($valor)->format('h:i A');
+        }
+
+        return $valor;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | DAÑOS Y EXTRAVÍOS
+    |--------------------------------------------------------------------------
+    | Solo en alquileres DEVUELTOS. El monto se suma al total y al saldo
+    | pendiente (igual que la mora) y se cobra con "Registrar pago".
+    | Lo extraviado se da de baja del inventario (movimiento SALIDA).
+    */
+    public function cantidadesAlquiladasPorProducto(Alquiler $alquiler): array
+    {
+        $alquiler->loadMissing(['detalles.producto', 'detalles.accesorios.producto']);
+
+        $productos = [];
+
+        $agregar = function ($producto, int $cantidad, string $etiqueta) use (&$productos) {
+            if (!$producto) {
+                return;
+            }
+
+            if (!isset($productos[$producto->id])) {
+                $productos[$producto->id] = [
+                    'producto' => $producto,
+                    'etiqueta' => $etiqueta,
+                    'cantidad' => 0,
+                ];
+            }
+
+            $productos[$producto->id]['cantidad'] += $cantidad;
+        };
+
+        foreach ($alquiler->detalles as $detalle) {
+            $agregar(
+                $detalle->producto,
+                (int) $detalle->cantidad,
+                ($detalle->producto->nombre ?? 'Toga') . ' (toga)'
+            );
+
+            foreach ($detalle->accesorios as $accesorio) {
+                $agregar(
+                    $accesorio->producto,
+                    (int) $accesorio->cantidad,
+                    ($accesorio->producto->nombre ?? 'Accesorio') . ' (' . strtolower($accesorio->tipo_accesorio) . ')'
+                );
+            }
+        }
+
+        return $productos;
+    }
+
+    public function registrarDano(
+        int $alquilerId,
+        int $productoId,
+        string $tipo,
+        int $cantidad,
+        float $monto,
+        ?string $descripcion = null,
+        ?string $responsable = null,
+        ?int $usuarioId = null
+    ): AlquilerDano {
+        return DB::transaction(function () use (
+            $alquilerId,
+            $productoId,
+            $tipo,
+            $cantidad,
+            $monto,
+            $descripcion,
+            $responsable,
+            $usuarioId
+        ) {
+            $alquiler = Alquiler::with(['detalles.producto', 'detalles.accesorios.producto', 'danos'])
+                ->lockForUpdate()
+                ->findOrFail($alquilerId);
+
+            if (!$alquiler->puedeRegistrarDanos()) {
+                throw new Exception('Solo se pueden registrar daños o extravíos en alquileres devueltos.');
+            }
+
+            if (!in_array($tipo, ['DANO', 'EXTRAVIO'], true)) {
+                throw new Exception('El tipo debe ser daño o extravío.');
+            }
+
+            if ($cantidad <= 0) {
+                throw new Exception('La cantidad debe ser mayor a cero.');
+            }
+
+            $monto = round($monto, 2);
+
+            if ($monto < 0) {
+                throw new Exception('El monto no puede ser negativo.');
+            }
+
+            $alquilados = $this->cantidadesAlquiladasPorProducto($alquiler);
+
+            if (!isset($alquilados[$productoId])) {
+                throw new Exception('El producto seleccionado no forma parte de este alquiler.');
+            }
+
+            $yaReportado = (int) $alquiler->danos->where('producto_id', $productoId)->sum('cantidad');
+            $maximo = $alquilados[$productoId]['cantidad'] - $yaReportado;
+
+            if ($cantidad > $maximo) {
+                throw new Exception(
+                    'La cantidad supera lo alquilado de "' . $alquilados[$productoId]['producto']->nombre . '". ' .
+                    'Alquilado: ' . $alquilados[$productoId]['cantidad'] . ', ya reportado: ' . $yaReportado .
+                    ', máximo a reportar: ' . max($maximo, 0) . '.'
+                );
+            }
+
+            $dano = AlquilerDano::create([
+                'alquiler_id' => $alquiler->id,
+                'producto_id' => $productoId,
+                'tipo' => $tipo,
+                'cantidad' => $cantidad,
+                'monto' => $monto,
+                'descripcion' => $descripcion ? trim($descripcion) : null,
+                'responsable' => $responsable ? trim($responsable) : null,
+                'usuario_id' => $usuarioId,
+            ]);
+
+            if ($tipo === 'EXTRAVIO') {
+                $this->inventarioService->registrarSalida(
+                    $productoId,
+                    $cantidad,
+                    'Extravío en alquiler ' . $alquiler->codigo_recibo,
+                    $alquiler->codigo_recibo,
+                    $usuarioId
+                );
+            }
+
+            if ($monto > 0) {
+                $alquiler->monto_danos = round((float) $alquiler->monto_danos + $monto, 2);
+                $alquiler->total = round((float) $alquiler->total + $monto, 2);
+                $alquiler->saldo_pendiente = round((float) $alquiler->saldo_pendiente + $monto, 2);
+                $this->recalcularEstadoPago($alquiler);
+                $alquiler->save();
+            }
+
+            $this->registrarHistorial(
+                $alquiler,
+                'DANO',
+                null,
+                null,
+                $dano->tipo_texto . ': ' . $cantidad . ' x ' . $alquilados[$productoId]['producto']->nombre .
+                    ' — Q' . number_format($monto, 2),
+                $descripcion,
+                $responsable,
+                $usuarioId
+            );
+
+            return $dano;
+        });
+    }
+
+    public function eliminarDano(
+        int $alquilerId,
+        int $danoId,
+        string $motivo,
+        ?string $responsable = null,
+        ?int $usuarioId = null
+    ): void {
+        DB::transaction(function () use ($alquilerId, $danoId, $motivo, $responsable, $usuarioId) {
+            $alquiler = Alquiler::lockForUpdate()->findOrFail($alquilerId);
+
+            $dano = AlquilerDano::with('producto')
+                ->where('alquiler_id', $alquiler->id)
+                ->lockForUpdate()
+                ->findOrFail($danoId);
+
+            $motivo = trim($motivo);
+
+            if ($motivo === '') {
+                throw new Exception('Debes indicar el motivo para eliminar el registro.');
+            }
+
+            $monto = round((float) $dano->monto, 2);
+
+            if ($monto > round((float) $alquiler->saldo_pendiente, 2)) {
+                throw new Exception(
+                    'No se puede eliminar: este cargo ya fue cobrado total o parcialmente ' .
+                    '(saldo pendiente Q' . number_format((float) $alquiler->saldo_pendiente, 2) .
+                    ', cargo Q' . number_format($monto, 2) . ').'
+                );
+            }
+
+            if ($dano->tipo === 'EXTRAVIO') {
+                $this->inventarioService->registrarEntrada(
+                    $dano->producto_id,
+                    $dano->cantidad,
+                    'Reversión de extravío en alquiler ' . $alquiler->codigo_recibo,
+                    $alquiler->codigo_recibo,
+                    $usuarioId
+                );
+            }
+
+            if ($monto > 0) {
+                $alquiler->monto_danos = max(0, round((float) $alquiler->monto_danos - $monto, 2));
+                $alquiler->total = max(0, round((float) $alquiler->total - $monto, 2));
+                $alquiler->saldo_pendiente = max(0, round((float) $alquiler->saldo_pendiente - $monto, 2));
+                $this->recalcularEstadoPago($alquiler);
+                $alquiler->save();
+            }
+
+            $this->registrarHistorial(
+                $alquiler,
+                'DANO_ELIMINADO',
+                null,
+                $dano->tipo_texto . ': ' . $dano->cantidad . ' x ' . ($dano->producto->nombre ?? 'Producto') .
+                    ' — Q' . number_format($monto, 2),
+                null,
+                $motivo,
+                $responsable,
+                $usuarioId
+            );
+
+            $dano->delete();
+        });
+    }
+
+    /**
+     * Misma regla que PagoService para el estado de pago.
+     */
+    protected function recalcularEstadoPago(Alquiler $alquiler): void
+    {
+        $saldo = round((float) $alquiler->saldo_pendiente, 2);
+        $total = round((float) $alquiler->total, 2);
+
+        if ($saldo <= 0) {
+            $alquiler->saldo_pendiente = 0;
+            $alquiler->estado_pago = 'PAGADO';
+        } elseif ($saldo < $total) {
+            $alquiler->estado_pago = 'PARCIAL';
+        } else {
+            $alquiler->estado_pago = 'PENDIENTE';
+        }
+    }
+
+    protected function registrarHistorial(
+        Alquiler $alquiler,
+        string $accion,
+        ?string $campo,
+        ?string $valorAnterior,
+        ?string $valorNuevo,
+        ?string $motivo,
+        ?string $responsable,
+        ?int $usuarioId
+    ): AlquilerHistorial {
+        return AlquilerHistorial::create([
+            'alquiler_id' => $alquiler->id,
+            'accion' => $accion,
+            'campo' => $campo,
+            'valor_anterior' => $valorAnterior,
+            'valor_nuevo' => $valorNuevo,
+            'motivo' => $motivo,
+            'responsable' => $responsable ? trim($responsable) : null,
+            'usuario_id' => $usuarioId,
+        ]);
     }
 }

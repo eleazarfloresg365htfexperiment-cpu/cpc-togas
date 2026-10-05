@@ -1394,9 +1394,15 @@ class WebController extends Controller
             'detalles.accesorios.producto.birrete',
             'detalles.accesorios.producto.borla',
             'detalles.accesorios.producto.collarin',
+            'historial',
+            'danos.producto',
         ])->findOrFail($id);
 
-        return view('alquileres.show', compact('alquiler'));
+        $productosDanos = $alquiler->puedeRegistrarDanos()
+            ? app(AlquilerService::class)->cantidadesAlquiladasPorProducto($alquiler)
+            : [];
+
+        return view('alquileres.show', compact('alquiler', 'productosDanos'));
     }
 
     public function reciboAlquilerWeb($id)
@@ -1484,35 +1490,177 @@ class WebController extends Controller
                 ->with('error', $e->getMessage());
         }
     }
-    public function cancelarAlquilerWeb($id)
+    public function cancelarAlquilerWeb(Request $request, $id, AlquilerService $alquilerService)
     {
-        $alquiler = Alquiler::with(['pagos', 'detalles'])->findOrFail($id);
+        $request->validate([
+            'motivo_cancelacion' => ['required', 'string', 'max:1000'],
+            'responsable' => ['nullable', 'string', 'max:255'],
+        ], [
+            'motivo_cancelacion.required' => 'Debes indicar el motivo de la cancelación.',
+        ]);
 
-        if ($alquiler->estado !== 'RESERVADO') {
+        try {
+            $alquiler = $alquilerService->cancelarAlquiler(
+                (int) $id,
+                $request->input('motivo_cancelacion'),
+                $request->input('responsable'),
+                auth()->id()
+            );
+
+            $mensaje = 'Alquiler cancelado correctamente.';
+
+            if ($alquiler->pagos()->exists()) {
+                $mensaje .= ' Los pagos registrados quedan retenidos (sin reembolso).';
+            }
+
             return redirect()
-                ->route('alquileres.web')
-                ->with('error', 'Solo se pueden cancelar alquileres en estado RESERVADO.');
-        }
-
-        if ($alquiler->pagos->count() > 0) {
+                ->route('alquileres.show', $id)
+                ->with('success', $mensaje);
+        } catch (\Exception $e) {
             return redirect()
-                ->route('alquileres.web')
-                ->with('error', 'No se puede cancelar este alquiler porque ya tiene pagos registrados.');
+                ->route('alquileres.show', $id)
+                ->with('error', $e->getMessage());
+        }
+    }
+
+    public function editarAlquilerWeb($id, AlquilerService $alquilerService)
+    {
+        $alquiler = Alquiler::with(['cliente', 'historial'])->findOrFail($id);
+
+        if (!$alquiler->puedeEditarse()) {
+            return redirect()
+                ->route('alquileres.show', $alquiler->id)
+                ->with('error', 'No se puede editar un alquiler en estado ' . $alquiler->estado . '.');
         }
 
-        $alquiler->estado = 'CANCELADO';
-        $alquiler->estado_pago = 'PENDIENTE';
-        $alquiler->saldo_pendiente = 0;
-        $alquiler->save();
+        $camposEditables = $alquilerService->camposEditables($alquiler);
 
-        foreach ($alquiler->detalles as $detalle) {
-            $detalle->estado = 'CANCELADO';
-            $detalle->save();
+        return view('alquileres.edit', compact('alquiler', 'camposEditables'));
+    }
+
+    public function actualizarAlquilerWeb(Request $request, $id, AlquilerService $alquilerService)
+    {
+        $alquiler = Alquiler::findOrFail($id);
+        $camposEditables = $alquilerService->camposEditables($alquiler);
+
+        $reglas = [
+            'fecha_entrega' => ['required', 'date'],
+            'hora_entrega' => ['nullable', 'date_format:H:i'],
+            'fecha_devolucion_programada' => ['required', 'date'],
+            'hora_devolucion_programada' => ['nullable', 'date_format:H:i'],
+            'hora_entrega_inicio' => ['nullable', 'date_format:H:i'],
+            'hora_entrega_fin' => ['nullable', 'date_format:H:i'],
+            'institucion_representada' => ['nullable', 'string', 'max:255'],
+            'representante_alquiler' => ['nullable', 'string', 'max:255'],
+            'fecha_limite_pago_final' => ['nullable', 'date'],
+            'observaciones' => ['nullable', 'string', 'max:500'],
+        ];
+
+        $datos = $request->validate(
+            array_intersect_key($reglas, array_flip($camposEditables)) + [
+                'motivo_cambio' => ['required', 'string', 'max:1000'],
+                'responsable' => ['nullable', 'string', 'max:255'],
+            ],
+            [
+                'motivo_cambio.required' => 'Debes indicar el motivo del cambio.',
+                'fecha_entrega.required' => 'Debes indicar la fecha de entrega.',
+                'fecha_devolucion_programada.required' => 'Debes indicar la fecha de devolución.',
+                'date_format' => 'La hora debe tener el formato HH:MM.',
+            ]
+        );
+
+        try {
+            $alquilerService->actualizarAlquiler(
+                (int) $alquiler->id,
+                array_intersect_key($datos, array_flip($camposEditables)),
+                $datos['motivo_cambio'],
+                $datos['responsable'] ?? null,
+                auth()->id()
+            );
+
+            return redirect()
+                ->route('alquileres.show', $alquiler->id)
+                ->with('success', 'Alquiler actualizado correctamente. El cambio quedó en el historial.');
+        } catch (\Exception $e) {
+            return redirect()
+                ->route('alquileres.edit', $alquiler->id)
+                ->withInput()
+                ->with('error', $e->getMessage());
         }
+    }
 
-        return redirect()
-            ->route('alquileres.web')
-            ->with('success', 'Alquiler cancelado correctamente.');
+    public function guardarDanoAlquilerWeb(Request $request, $id, AlquilerService $alquilerService)
+    {
+        $datos = $request->validate([
+            'producto_id' => ['required', 'exists:productos,id'],
+            'tipo' => ['required', 'in:DANO,EXTRAVIO'],
+            'cantidad' => ['required', 'integer', 'min:1'],
+            'monto' => ['required', 'numeric', 'min:0'],
+            'descripcion' => ['nullable', 'string', 'max:1000'],
+            'responsable' => ['nullable', 'string', 'max:255'],
+        ], [
+            'producto_id.required' => 'Selecciona el producto dañado o extraviado.',
+            'monto.required' => 'Indica el monto a cobrar (puede ser 0).',
+        ]);
+
+        try {
+            $dano = $alquilerService->registrarDano(
+                alquilerId: (int) $id,
+                productoId: (int) $datos['producto_id'],
+                tipo: $datos['tipo'],
+                cantidad: (int) $datos['cantidad'],
+                monto: (float) $datos['monto'],
+                descripcion: $datos['descripcion'] ?? null,
+                responsable: $datos['responsable'] ?? null,
+                usuarioId: auth()->id()
+            );
+
+            $mensaje = $dano->tipo_texto . ' registrado correctamente.';
+
+            if ((float) $dano->monto > 0) {
+                $mensaje .= ' Se agregaron Q' . number_format((float) $dano->monto, 2) . ' al saldo pendiente.';
+            }
+
+            if ($dano->tipo === 'EXTRAVIO') {
+                $mensaje .= ' Se dio de baja del inventario.';
+            }
+
+            return redirect()
+                ->to(route('alquileres.show', $id) . '#danos')
+                ->with('success', $mensaje);
+        } catch (\Exception $e) {
+            return redirect()
+                ->to(route('alquileres.show', $id) . '#danos')
+                ->withInput()
+                ->with('error', $e->getMessage());
+        }
+    }
+
+    public function eliminarDanoAlquilerWeb(Request $request, $id, $danoId, AlquilerService $alquilerService)
+    {
+        $request->validate([
+            'motivo_eliminacion' => ['required', 'string', 'max:1000'],
+        ], [
+            'motivo_eliminacion.required' => 'Debes indicar el motivo para eliminar el registro.',
+        ]);
+
+        try {
+            $alquilerService->eliminarDano(
+                (int) $id,
+                (int) $danoId,
+                $request->input('motivo_eliminacion'),
+                $request->input('responsable'),
+                auth()->id()
+            );
+
+            return redirect()
+                ->to(route('alquileres.show', $id) . '#danos')
+                ->with('success', 'Registro eliminado. Se revirtió el cargo y, si era extravío, el inventario.');
+        } catch (\Exception $e) {
+            return redirect()
+                ->to(route('alquileres.show', $id) . '#danos')
+                ->with('error', $e->getMessage());
+        }
     }
 
     // ------------------------------------------------------------

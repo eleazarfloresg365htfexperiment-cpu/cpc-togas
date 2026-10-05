@@ -131,6 +131,53 @@ class InventarioService
         });
     }
 
+    /**
+     * Baja definitiva de inventario (por ejemplo, togas o accesorios extraviados).
+     * Resta del stock total y del disponible, y queda como movimiento SALIDA.
+     */
+    public function registrarSalida(
+        int $productoId,
+        int $cantidad,
+        ?string $motivo = null,
+        ?string $referencia = null,
+        ?int $usuarioId = null
+    ): MovimientoInventario {
+        return DB::transaction(function () use ($productoId, $cantidad, $motivo, $referencia, $usuarioId) {
+            $producto = Producto::lockForUpdate()->findOrFail($productoId);
+
+            if ($cantidad <= 0) {
+                throw new Exception('La cantidad de salida debe ser mayor a cero.');
+            }
+
+            if ($producto->stock_disponible < $cantidad) {
+                throw new Exception(
+                    'No hay suficiente stock disponible de "' . $producto->nombre . '" para darlo de baja ' .
+                    '(disponible: ' . $producto->stock_disponible . ', a dar de baja: ' . $cantidad . ').'
+                );
+            }
+
+            $stockAnteriorDisponible = $producto->stock_disponible;
+            $stockAnteriorAlquilado = $producto->stock_alquilado;
+
+            $producto->stock_total = max(0, $producto->stock_total - $cantidad);
+            $producto->stock_disponible -= $cantidad;
+            $producto->save();
+
+            return MovimientoInventario::create([
+                'producto_id' => $producto->id,
+                'tipo_movimiento' => 'SALIDA',
+                'cantidad' => $cantidad,
+                'stock_anterior_disponible' => $stockAnteriorDisponible,
+                'stock_nuevo_disponible' => $producto->stock_disponible,
+                'stock_anterior_alquilado' => $stockAnteriorAlquilado,
+                'stock_nuevo_alquilado' => $producto->stock_alquilado,
+                'motivo' => $motivo ?? 'Salida de inventario',
+                'referencia' => $referencia,
+                'usuario_id' => $usuarioId,
+            ]);
+        });
+    }
+
     public function registrarAjuste(
         int $productoId,
         int $nuevoStockDisponible,
