@@ -15,11 +15,11 @@
     </div>
 
     <div class="d-flex gap-2 flex-wrap">
-        <a href="{{ url('/productos-web/administrar/entrada') }}" class="btn btn-outline-secondary rounded-pill">
+        <a href="{{ route('productos.administrar.accion', 'entrada') }}" class="btn btn-outline-secondary rounded-pill">
             ← Volver a selección
         </a>
 
-        <a href="{{ url('/productos-web') }}" class="btn btn-outline-primary rounded-pill">
+        <a href="{{ route('productos.index') }}" class="btn btn-outline-primary rounded-pill">
             👗 Ver productos
         </a>
     </div>
@@ -117,7 +117,7 @@
                 </div>
             @endif
 
-            <form action="{{ url('/productos-web/' . $producto->id . '/entrada') }}"
+            <form action="{{ route('productos.entrada.guardar', $producto) }}"
                   method="POST"
                   class="confirm-action-form"
                   data-title="¿Registrar entrada de inventario?"
@@ -177,7 +177,7 @@
                 </div>
 
                 <div class="d-flex justify-content-end gap-2 flex-wrap mt-4">
-                    <a href="{{ url('/productos-web/administrar/entrada') }}" class="btn btn-outline-secondary rounded-pill px-4">
+                    <a href="{{ route('productos.administrar.accion', 'entrada') }}" class="btn btn-outline-secondary rounded-pill px-4">
                         Cancelar
                     </a>
 

@@ -15,7 +15,7 @@
     </div>
 
     <div class="d-flex gap-2 flex-wrap">
-        <a href="{{ url('/productos-web/administrar') }}" class="btn btn-primary rounded-pill">
+        <a href="{{ route('productos.administrar') }}" class="btn btn-primary rounded-pill">
             🛠️ Administrar productos
         </a>
 
@@ -98,35 +98,35 @@
     <div class="stat-card">
         <div class="stat-icon">📦</div>
         <div class="stat-label">Total movimientos</div>
-        <div class="stat-value">{{ $movimientos->count() }}</div>
+        <div class="stat-value">{{ $resumen['total'] }}</div>
         <div class="stat-sub">Registros de inventario</div>
     </div>
 
     <div class="stat-card">
         <div class="stat-icon">➕</div>
         <div class="stat-label">Entradas</div>
-        <div class="stat-value">{{ $movimientos->where('tipo_movimiento', 'ENTRADA')->count() }}</div>
+        <div class="stat-value">{{ $resumen['entradas'] }}</div>
         <div class="stat-sub">Aumentos de inventario</div>
     </div>
 
     <div class="stat-card">
         <div class="stat-icon">🧾</div>
         <div class="stat-label">Alquileres</div>
-        <div class="stat-value">{{ $movimientos->where('tipo_movimiento', 'ALQUILER')->count() }}</div>
+        <div class="stat-value">{{ $resumen['alquileres'] }}</div>
         <div class="stat-sub">Salidas por alquiler</div>
     </div>
 
     <div class="stat-card">
         <div class="stat-icon">🔁</div>
         <div class="stat-label">Devoluciones</div>
-        <div class="stat-value">{{ $movimientos->where('tipo_movimiento', 'DEVOLUCION')->count() }}</div>
+        <div class="stat-value">{{ $resumen['devoluciones'] }}</div>
         <div class="stat-sub">Retornos al inventario</div>
     </div>
 
     <div class="stat-card">
         <div class="stat-icon">⚙️</div>
         <div class="stat-label">Ajustes</div>
-        <div class="stat-value">{{ $movimientos->where('tipo_movimiento', 'AJUSTE')->count() }}</div>
+        <div class="stat-value">{{ $resumen['ajustes'] }}</div>
         <div class="stat-sub">Correcciones manuales</div>
     </div>
 
@@ -143,11 +143,11 @@
         </div>
 
         <span class="badge text-bg-light rounded-pill px-3 py-2">
-            {{ $movimientos->count() }} registros
+            {{ $movimientos->total() }} registros
         </span>
     </div>
 
-    @if($movimientos->count() > 0)
+    @if($movimientos->isNotEmpty())
         <div class="table-responsive">
             <table class="table table-modern align-middle mb-0">
                 <thead>
@@ -292,6 +292,10 @@
                 </tbody>
 
             </table>
+        </div>
+
+        <div class="mt-3">
+            {{ $movimientos->links() }}
         </div>
     @else
         <div class="alert alert-light border rounded-4 mb-0">

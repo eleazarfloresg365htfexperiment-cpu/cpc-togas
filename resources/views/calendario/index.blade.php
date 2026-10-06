@@ -13,7 +13,7 @@
             </p>
         </div>
 
-        <a href="{{ url('/alquileres-web') }}" class="btn btn-outline-secondary">
+        <a href="{{ route('alquileres.index') }}" class="btn btn-outline-secondary">
             ← Volver a alquileres
         </a>
     </div>

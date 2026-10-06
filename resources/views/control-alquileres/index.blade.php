@@ -244,7 +244,7 @@
                         $situacion = 'Sin situación';
                         $situacionClase = 'text-muted';
 
-                        if ($alquiler->estado === 'RESERVADO') {
+                        if (in_array($alquiler->estado, \App\Models\Alquiler::ESTADOS_ANTES_DE_ENTREGA, true)) {
                             if ($fechaEntrega && $fechaEntrega->isToday()) {
                                 $situacion = 'Entrega hoy';
                                 $situacionClase = 'text-primary fw-semibold';
@@ -253,8 +253,17 @@
                                 $situacion = 'Entrega pendiente hace ' . $dias . ' día(s)';
                                 $situacionClase = 'text-warning fw-semibold';
                             } else {
-                                $situacion = 'Reservado';
+                                $situacion = match ($alquiler->estado) {
+                                    'EN_FABRICACION' => 'En fabricación',
+                                    'LISTO_PARA_ENTREGA' => 'Listo para entrega',
+                                    default => 'Reservado',
+                                };
                                 $situacionClase = 'text-muted';
+                            }
+
+                            if ($alquiler->estado === 'EN_FABRICACION') {
+                                $situacion .= ' · falta fabricar';
+                                $situacionClase = 'text-danger fw-semibold';
                             }
                         }
 

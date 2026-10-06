@@ -19,11 +19,11 @@
             ➕ Registrar producto
         </a>
 
-        <a href="{{ url('/productos-web/administrar') }}" class="btn btn-outline-primary rounded-pill">
+        <a href="{{ route('productos.administrar') }}" class="btn btn-outline-primary rounded-pill">
             🛠️ Administrar productos
         </a>
 
-        <a href="{{ url('/inventario/movimientos') }}" class="btn btn-outline-primary rounded-pill">
+        <a href="{{ route('inventario.movimientos') }}" class="btn btn-outline-primary rounded-pill">
             📋 Ver movimientos
         </a>
     </div>
@@ -225,7 +225,11 @@
                             </td>
 
                             <td>
-                                <strong>Q {{ number_format($producto->precio_alquiler, 2) }}</strong>
+                                @if($producto->esAccesorio())
+                                    <span class="text-muted small">Incluido</span>
+                                @else
+                                    <strong>Q {{ number_format($producto->precio_alquiler, 2) }}</strong>
+                                @endif
                             </td>
 
                             <td>

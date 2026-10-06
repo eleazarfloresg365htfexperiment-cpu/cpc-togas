@@ -71,4 +71,19 @@ class Producto extends Model
     {
         return $this->hasMany(MovimientoInventario::class, 'producto_id');
     }
+
+    /**
+     * Collarín, capa, birrete y borla. No tienen precio propio: incluidos se
+     * entregan sin costo y, como extra, se cobran con los precios de
+     * config/alquiler.php (accessory_types).
+     */
+    public static function esTipoAccesorio(?string $tipo): bool
+    {
+        return array_key_exists((string) $tipo, config('alquiler.accessory_types', []));
+    }
+
+    public function esAccesorio(): bool
+    {
+        return self::esTipoAccesorio($this->tipo_producto);
+    }
 }

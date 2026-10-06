@@ -14,32 +14,32 @@
         </p>
     </div>
 
-    <a href="{{ url('/productos-web') }}" class="btn btn-outline-secondary rounded-pill">
+    <a href="{{ route('productos.index') }}" class="btn btn-outline-secondary rounded-pill">
         ← Volver a productos
     </a>
 </div>
 
 <div class="quick-grid">
 
-    <a href="{{ url('/productos-web/administrar/editar') }}" class="quick-card">
+    <a href="{{ route('productos.administrar.accion', 'editar') }}" class="quick-card">
         <div class="quick-icon">✏️</div>
         <div class="card-title-mini">Editar producto</div>
         <p class="card-desc-mini">Modificar datos generales, precio, talla, color o detalles.</p>
     </a>
 
-    <a href="{{ url('/productos-web/administrar/entrada') }}" class="quick-card">
+    <a href="{{ route('productos.administrar.accion', 'entrada') }}" class="quick-card">
         <div class="quick-icon">➕</div>
         <div class="card-title-mini">Entrada de inventario</div>
         <p class="card-desc-mini">Agregar nuevas unidades al stock disponible.</p>
     </a>
 
-    <a href="{{ url('/productos-web/administrar/ajuste') }}" class="quick-card">
+    <a href="{{ route('productos.administrar.accion', 'ajuste') }}" class="quick-card">
         <div class="quick-icon">⚙️</div>
         <div class="card-title-mini">Ajuste manual</div>
         <p class="card-desc-mini">Corregir el stock por conteo físico o revisión.</p>
     </a>
 
-    <a href="{{ url('/productos-web/administrar/estado') }}" class="quick-card">
+    <a href="{{ route('productos.administrar.accion', 'estado') }}" class="quick-card">
         <div class="quick-icon">⛔</div>
         <div class="card-title-mini">Activar / desactivar</div>
         <p class="card-desc-mini">Ocultar o reactivar productos para nuevos alquileres.</p>

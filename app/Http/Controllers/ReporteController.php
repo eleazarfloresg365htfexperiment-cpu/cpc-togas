@@ -28,7 +28,7 @@ class ReporteController extends Controller
         | Alquileres por estado
         |--------------------------------------------------------------------------
         */
-        $alquileresReservados = Alquiler::where('estado', 'RESERVADO')->count();
+        $alquileresReservados = Alquiler::whereIn('estado', Alquiler::ESTADOS_ANTES_DE_ENTREGA)->count();
         $alquileresEntregados = Alquiler::where('estado', 'ENTREGADO')->count();
         $alquileresDevueltos = Alquiler::where('estado', 'DEVUELTO')->count();
         $alquileresCancelados = Alquiler::where('estado', 'CANCELADO')->count();

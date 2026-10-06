@@ -366,8 +366,18 @@ class EstadisticasController extends Controller
     {
         $datos = $this->obtenerDatosExportacion($request);
 
-        $datos['graficoAlquileresImagen'] = $request->input('grafico_alquileres');
-        $datos['graficoFinancieroImagen'] = $request->input('grafico_financiero');
+        // Solo se aceptan imágenes PNG/JPEG en base64 generadas por los gráficos.
+        // Cualquier otro valor (rutas, file://, URLs) se descarta antes de llegar a dompdf.
+        $imagenSegura = function ($valor) {
+            return is_string($valor)
+                && strlen($valor) <= 5 * 1024 * 1024
+                && preg_match('#^data:image/(png|jpeg);base64,[A-Za-z0-9+/=]+$#', $valor)
+                ? $valor
+                : null;
+        };
+
+        $datos['graficoAlquileresImagen'] = $imagenSegura($request->input('grafico_alquileres'));
+        $datos['graficoFinancieroImagen'] = $imagenSegura($request->input('grafico_financiero'));
 
         $nombreArchivo = 'estadisticas_' . now()->format('Ymd_His') . '.pdf';
 

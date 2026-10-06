@@ -238,7 +238,7 @@ class CalendarioController extends Controller
             'backgroundColor' => $datos['backgroundColor'],
             'borderColor' => $datos['borderColor'],
             'textColor' => '#ffffff',
-            'url' => url('/alquileres-web/' . $alquiler->id),
+            'url' => route('alquileres.show', $alquiler->id),
             'extendedProps' => [
                 'tipo_evento' => $datos['tipo_evento'],
                 'tipo_evento_texto' => $datos['tipo_evento_texto'],
@@ -286,6 +286,8 @@ class CalendarioController extends Controller
     {
         return match ($estado) {
             'RESERVADO' => '#0d6efd',
+            'EN_FABRICACION' => '#6f42c1',
+            'LISTO_PARA_ENTREGA' => '#20c997',
             'ENTREGADO' => '#fd7e14',
             'DEVUELTO' => '#198754',
             'CANCELADO' => '#6c757d',

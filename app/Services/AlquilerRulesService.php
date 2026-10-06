@@ -32,22 +32,24 @@ class AlquilerRulesService
 
             $fabricarExcedente = !empty($item['fabricar_excedente']);
 
+            /*
+            | Si piden más de lo disponible:
+            | - con fabricación autorizada, el faltante queda pendiente de fabricar
+            |   y se alquila (y cobra) la cantidad completa;
+            | - sin autorización, se rechaza. Antes se recortaba en silencio
+            |   a lo disponible, y el alquiler quedaba con menos togas.
+            */
             if ($fabricarExcedente) {
                 $cantidadPendiente = max(0, $cantidad - $cantidadDisponible);
             } else {
-                // Si el usuario decidió omitir el excedente,
-                // la cantidad real del alquiler se limita al stock disponible.
                 if ($cantidad > $cantidadDisponible) {
-                    $cantidad = $cantidadDisponible;
+                    throw new Exception(
+                        "Pediste {$cantidad} de \"{$producto->nombre}\" pero solo hay {$cantidadDisponible} disponible(s). " .
+                        "Marca \"Autorizar fabricación\" en esa toga o reduce la cantidad."
+                    );
                 }
 
                 $cantidadPendiente = 0;
-            }
-
-            if ($cantidad <= 0) {
-                throw new Exception(
-                    "El producto \"{$producto->nombre}\" no tiene stock disponible y no se autorizó fabricación."
-                );
             }
 
             $accesorios = $this->prepararAccesorios(
@@ -140,6 +142,26 @@ class AlquilerRulesService
                 throw new Exception("La toga estándar requiere un collarín normal.");
             }
 
+            /*
+            | Rojo y Verde existen como borla normal y universitaria: la borla
+            | incluida debe ser del tipo de la toga (estándar → normal,
+            | universitaria → universitaria).
+            */
+            if ($tipoAccesorio === 'BORLA' && $tipoCobro === 'INCLUIDO' && in_array($tipoPrincipal, ['TOGA', 'TOGA_UNIVERSITARIA'], true)) {
+                $esUniversitaria = $tipoPrincipal === 'TOGA_UNIVERSITARIA'
+                    || optional($productoPrincipal->toga)->tipo_toga === 'UNIVERSITARIA';
+                $tipoRequerido = $esUniversitaria ? 'UNIVERSITARIA' : 'NORMAL';
+                $tipoBorla = optional($productoAccesorio->borla)->tipo_borla ?? 'NORMAL';
+
+                if ($tipoBorla !== $tipoRequerido) {
+                    throw new Exception(
+                        "En la toga #{$numeroProducto}, la borla incluida debe ser " .
+                        ($esUniversitaria ? 'universitaria' : 'normal') .
+                        " (la seleccionada es " . ($tipoBorla === 'UNIVERSITARIA' ? 'universitaria' : 'normal') . ")."
+                    );
+                }
+            }
+
             if (
                 $tipoPrincipal === 'TOGA' &&
                 $tipoAccesorio === 'BORLA' &&
@@ -153,6 +175,25 @@ class AlquilerRulesService
                 throw new Exception("La borla incluida para una toga estándar debe coincidir con el color del collarín incluido.");
             }
 
+            if (
+                $tipoPrincipal === 'TOGA_UNIVERSITARIA' &&
+                $tipoAccesorio === 'BORLA' &&
+                $tipoCobro === 'INCLUIDO'
+            ) {
+                $colorCapa = $this->getIncludedCapaColor($accesorios);
+                $colorBorla = optional($productoAccesorio->borla)->color;
+
+                if (
+                    $colorCapa !== null &&
+                    mb_strtoupper(trim((string) $colorBorla)) !== mb_strtoupper(trim($colorCapa))
+                ) {
+                    throw new Exception(
+                        "En la toga #{$numeroProducto}, la borla incluida debe ser color {$colorCapa} para coincidir con la capa " .
+                        "(la seleccionada es " . ($colorBorla ?: 'sin color') . ")."
+                    );
+                }
+            }
+
             $cantidadDisponible = max(0, $productoAccesorio->stock_disponible);
 
             $fabricarExcedente = !empty($accesorio['fabricar_excedente']);
@@ -161,16 +202,14 @@ class AlquilerRulesService
                 $cantidadPendiente = max(0, $cantidadAccesorio - $cantidadDisponible);
             } else {
                 if ($cantidadAccesorio > $cantidadDisponible) {
-                    $cantidadAccesorio = $cantidadDisponible;
+                    throw new Exception(
+                        "En la toga #{$numeroProducto} se necesitan {$cantidadAccesorio} de \"{$productoAccesorio->nombre}\" " .
+                        "pero solo hay {$cantidadDisponible} disponible(s). " .
+                        "Marca \"Autorizar fabricación\" en esa toga, elige otro accesorio o reduce la cantidad."
+                    );
                 }
 
                 $cantidadPendiente = 0;
-            }
-
-            if ($cantidadAccesorio <= 0) {
-                throw new Exception(
-                    "El accesorio \"{$productoAccesorio->nombre}\" no tiene stock disponible y no se autorizó fabricación."
-                );
             }
 
             $precioUnitario = isset($accesorio['precio_unitario'])
@@ -245,6 +284,30 @@ class AlquilerRulesService
             if ($tipoAccesorio === 'COLLARIN' && $tipoCobro === 'INCLUIDO') {
                 $producto = $this->obtenerProducto($accesorio['producto_id'] ?? null);
                 return optional($producto->collarin)->color;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Color de borla que corresponde a la capa incluida.
+     * Se usa el color oficial de la carrera (config/alquiler.php) y,
+     * si la capa no tiene carrera, el color guardado en la capa.
+     */
+    protected function getIncludedCapaColor(array $accesorios): ?string
+    {
+        foreach ($accesorios as $accesorio) {
+            $tipoAccesorio = strtoupper($accesorio['tipo_accesorio'] ?? '');
+            $tipoCobro = strtoupper($accesorio['tipo_cobro'] ?? 'INCLUIDO');
+
+            if ($tipoAccesorio === 'CAPA' && $tipoCobro === 'INCLUIDO') {
+                $capa = optional($this->obtenerProducto($accesorio['producto_id'] ?? null)->capa);
+                $porCarrera = config('alquiler.colores_borla_por_carrera', []);
+
+                $color = $porCarrera[strtoupper((string) $capa->carrera)] ?? $capa->color;
+
+                return $color ? trim($color) : null;
             }
         }
 

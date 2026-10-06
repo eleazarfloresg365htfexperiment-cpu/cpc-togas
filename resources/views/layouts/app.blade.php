@@ -427,23 +427,23 @@
                 </div>
 
                 <nav class="nav flex-column sidebar-nav">
-                    <a class="nav-link {{ request()->is('dashboard') ? 'active' : '' }}" href="{{ url('/dashboard') }}">
+                    <a class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}">
                         📊 Dashboard
                     </a>
 
-                    <a class="nav-link {{ request()->is('inventario/movimientos') ? 'active' : '' }}" href="{{ url('/inventario/movimientos') }}">
+                    <a class="nav-link {{ request()->routeIs('inventario.movimientos') ? 'active' : '' }}" href="{{ route('inventario.movimientos') }}">
                         📦 Movimientos
                     </a>
 
-                    <a class="nav-link {{ request()->is('productos-web*') ? 'active' : '' }}" href="{{ url('/productos-web') }}">
+                    <a class="nav-link {{ request()->routeIs('productos.*') ? 'active' : '' }}" href="{{ route('productos.index') }}">
                         👗 Productos
                     </a>
 
-                    <a class="nav-link {{ request()->is('clientes-web*') ? 'active' : '' }}" href="{{ url('/clientes-web') }}">
+                    <a class="nav-link {{ request()->routeIs('clientes.*') ? 'active' : '' }}" href="{{ route('clientes.index') }}">
                         👥 Clientes
                     </a>
 
-                    <a class="nav-link {{ request()->is('alquileres-web*') ? 'active' : '' }}" href="{{ url('/alquileres-web') }}">
+                    <a class="nav-link {{ request()->routeIs('alquileres.*', 'pagos.*') ? 'active' : '' }}" href="{{ route('alquileres.index') }}">
                         🧾 Alquileres
                     </a>
 

@@ -177,6 +177,12 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+            // Escapa texto guardado por usuarios (p. ej. nombres de producto)
+            // antes de meterlo en el HTML de la ventana de confirmación.
+            const escaparHtml = (texto) => String(texto ?? '').replace(/[&<>"']/g, (c) => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[c]));
+
             const producto = document.getElementById('dano_producto_id');
             const cantidad = document.getElementById('dano_cantidad');
             const tipo = document.getElementById('dano_tipo');
@@ -228,8 +234,8 @@
                     title: esExtravio ? '¿Registrar extravío?' : '¿Registrar daño?',
                     html: `
                         <div class="text-start">
-                            <p class="mb-1"><strong>Producto:</strong> ${opcion ? opcion.text.split('—')[0].trim() : ''}</p>
-                            <p class="mb-1"><strong>Cantidad:</strong> ${cantidad.value}</p>
+                            <p class="mb-1"><strong>Producto:</strong> ${escaparHtml(opcion ? opcion.text.split('—')[0].trim() : '')}</p>
+                            <p class="mb-1"><strong>Cantidad:</strong> ${escaparHtml(cantidad.value)}</p>
                             <p class="mb-1"><strong>Monto a cobrar:</strong> Q ${monto.toFixed(2)}</p>
                             ${esExtravio ? '<p class="mb-0 text-danger">Se dará de baja del inventario.</p>' : ''}
                         </div>`,

@@ -78,7 +78,9 @@ return [
     |
     */
 
-    'locale' => env('APP_LOCALE', 'en'),
+    // El sistema es solo en español: mensajes de validación, fechas y meses.
+    // (No depende del .env para que ningún equipo quede en inglés por error.)
+    'locale' => 'es',
 
     'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en'),
 

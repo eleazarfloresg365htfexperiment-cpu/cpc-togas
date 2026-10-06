@@ -1,117 +1,132 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\WebController;
-use App\Http\Controllers\ExportacionController;
 use App\Http\Controllers\CalendarioController;
 use App\Http\Controllers\ControlAlquilerController;
 use App\Http\Controllers\EstadisticasController;
+use App\Http\Controllers\ExportacionController;
+use App\Http\Controllers\Web\AlquilerController;
+use App\Http\Controllers\Web\AlquilerDocumentoController;
+use App\Http\Controllers\Web\ClienteController;
+use App\Http\Controllers\Web\DanoController;
+use App\Http\Controllers\Web\DashboardController;
+use App\Http\Controllers\Web\FabricacionController;
+use App\Http\Controllers\Web\InventarioController;
+use App\Http\Controllers\Web\PagoController;
+use App\Http\Controllers\Web\ProductoController;
+use App\Http\Controllers\Web\RutaAnteriorController;
 
-Route::get('/', function () {
-    return redirect('/dashboard');
-});
+/*
+|--------------------------------------------------------------------------
+| Rutas web del sistema
+|--------------------------------------------------------------------------
+| Convención: /recurso, /recurso/crear, /recurso/{id}, /recurso/{id}/editar
+| (los verbos "crear" y "editar" se configuran en AppServiceProvider).
+| Cada ruta tiene nombre "recurso.accion" y las vistas siempre usan route().
+*/
 
-Route::get('/dashboard', [WebController::class, 'dashboard']);
+Route::get('/', fn () => redirect()->route('dashboard'));
 
-Route::get('/productos-web', [WebController::class, 'productos'])
-    ->name('productos.index');
+Route::get('/dashboard', DashboardController::class)->name('dashboard');
 
- //- - - - PRODUCTOS - - - -
+// - - - - PRODUCTOS - - - -
+// Las rutas fijas (administrar) van antes que las que llevan {producto}.
 
-Route::get('/productos-web/crear', [WebController::class, 'crearProducto'])
-    ->name('productos.create');
-Route::post('/productos-web', [WebController::class, 'guardarProducto'])
-    ->name('productos.store');
-Route::get('/productos-web/administrar', [WebController::class, 'administrarProductos'])
+Route::get('/productos/administrar', [ProductoController::class, 'administrar'])
     ->name('productos.administrar');
-Route::get('/productos-web/administrar/{accion}', [WebController::class, 'administrarProductosAccion'])
+Route::get('/productos/administrar/{accion}', [ProductoController::class, 'administrarAccion'])
     ->name('productos.administrar.accion');
-Route::get('/productos-web/{id}/editar', [WebController::class, 'editarProducto'])
-    ->name('productos.edit');
-Route::put('/productos-web/{id}', [WebController::class, 'actualizarProducto'])
-    ->name('productos.update');
-Route::patch('/productos-web/{id}/desactivar', [WebController::class, 'desactivarProducto'])
+
+Route::resource('productos', ProductoController::class)
+    ->only(['index', 'create', 'store', 'edit', 'update'])
+    ->parameters(['productos' => 'producto']);
+
+Route::patch('/productos/{producto}/desactivar', [ProductoController::class, 'desactivar'])
     ->name('productos.desactivar');
-Route::patch('/productos-web/{id}/reactivar', [WebController::class, 'reactivarProducto'])
+Route::patch('/productos/{producto}/reactivar', [ProductoController::class, 'reactivar'])
     ->name('productos.reactivar');
-Route::get('/productos-web/{id}/entrada', [WebController::class, 'entradaProducto'])
+
+// Movimientos de inventario de un producto
+Route::get('/productos/{producto}/entrada', [InventarioController::class, 'entrada'])
     ->name('productos.entrada');
-Route::post('/productos-web/{id}/entrada', [WebController::class, 'guardarEntradaProducto'])
+Route::post('/productos/{producto}/entrada', [InventarioController::class, 'guardarEntrada'])
     ->name('productos.entrada.guardar');
-Route::get('/productos-web/{id}/ajuste', [WebController::class, 'ajusteProducto'])
+Route::get('/productos/{producto}/ajuste', [InventarioController::class, 'ajuste'])
     ->name('productos.ajuste');
-Route::post('/productos-web/{id}/ajuste', [WebController::class, 'guardarAjusteProducto'])
+Route::post('/productos/{producto}/ajuste', [InventarioController::class, 'guardarAjuste'])
     ->name('productos.ajuste.guardar');
-Route::get('/inventario/movimientos', [WebController::class, 'movimientosInventario'])
+Route::get('/inventario/movimientos', [InventarioController::class, 'movimientos'])
     ->name('inventario.movimientos');
 
+// - - - - CLIENTES - - - -
 
- //- - - - CLIENTES - - - -    
+Route::resource('clientes', ClienteController::class)
+    ->only(['index', 'create', 'store', 'edit', 'update'])
+    ->parameters(['clientes' => 'cliente']);
 
-Route::get('/clientes-web', [WebController::class, 'clientesWeb'])
-    ->name('clientes.web');
-Route::get('/clientes-web/crear', [WebController::class, 'crearClienteWeb'])
-    ->name('clientes.create');
-Route::post('/clientes-web', [WebController::class, 'guardarClienteWeb'])
-    ->name('clientes.store');
-Route::get('/clientes-web/{id}/editar', [WebController::class, 'editarClienteWeb'])
-    ->name('clientes.edit');
-Route::put('/clientes-web/{id}', [WebController::class, 'actualizarClienteWeb'])
-    ->name('clientes.update');
-Route::post('/clientes-web/{id}/desactivar', [WebController::class, 'desactivarClienteWeb'])
+Route::post('/clientes/{cliente}/desactivar', [ClienteController::class, 'desactivar'])
     ->name('clientes.desactivar');
-Route::post('/clientes-web/{id}/reactivar', [WebController::class, 'reactivarClienteWeb'])
+Route::post('/clientes/{cliente}/reactivar', [ClienteController::class, 'reactivar'])
     ->name('clientes.reactivar');
 
- //- - - - ALQUILERES - - - -
+// - - - - ALQUILERES - - - -
 
-Route::get('/alquileres-web', [WebController::class, 'alquileresWeb'])
-    ->name('alquileres.web');
-Route::get('/alquileres-web/crear', [WebController::class, 'crearAlquilerWeb'])
-    ->name('alquileres.create');
-Route::post('/alquileres-web', [WebController::class, 'guardarAlquilerWeb'])
-    ->name('alquileres.store');
-Route::get('/alquileres-web/{id}', [WebController::class, 'verAlquilerWeb'])
-    ->name('alquileres.show');
-Route::post('/alquileres-web/{id}/entregar', [WebController::class, 'entregarAlquilerWeb'])
+Route::resource('alquileres', AlquilerController::class)
+    ->only(['index', 'create', 'store', 'show', 'edit', 'update'])
+    ->parameters(['alquileres' => 'alquiler']);
+
+Route::post('/alquileres/{alquiler}/entregar', [AlquilerController::class, 'entregar'])
     ->name('alquileres.entregar');
-Route::post('/alquileres-web/{id}/devolver', [WebController::class, 'devolverAlquilerWeb'])
+Route::post('/alquileres/{alquiler}/devolver', [AlquilerController::class, 'devolver'])
     ->name('alquileres.devolver');
-Route::post('/alquileres-web/{id}/cancelar', [WebController::class, 'cancelarAlquilerWeb'])
+Route::post('/alquileres/{alquiler}/cancelar', [AlquilerController::class, 'cancelar'])
     ->name('alquileres.cancelar');
-Route::get('/alquileres-web/{id}/editar', [WebController::class, 'editarAlquilerWeb'])
-    ->name('alquileres.edit');
-Route::put('/alquileres-web/{id}', [WebController::class, 'actualizarAlquilerWeb'])
-    ->name('alquileres.update');
-Route::post('/alquileres-web/{id}/danos', [WebController::class, 'guardarDanoAlquilerWeb'])
+
+Route::post('/alquileres/{alquiler}/fabricaciones/{fabricacionId}/completar', [FabricacionController::class, 'completar'])
+    ->whereNumber('fabricacionId')
+    ->name('alquileres.fabricaciones.completar');
+
+Route::post('/alquileres/{alquiler}/danos', [DanoController::class, 'store'])
     ->name('alquileres.danos.store');
-Route::delete('/alquileres-web/{id}/danos/{danoId}', [WebController::class, 'eliminarDanoAlquilerWeb'])
+Route::delete('/alquileres/{alquiler}/danos/{danoId}', [DanoController::class, 'destroy'])
+    ->whereNumber('danoId')
     ->name('alquileres.danos.destroy');
 
- //- - - - PAGOS - - - -
-
-Route::get('/alquileres-web/{id}/pagar', [WebController::class, 'crearPagoWeb'])
-    ->name('pagos.create');
-Route::post('/alquileres-web/{id}/pagar', [WebController::class, 'guardarPagoWeb'])
-    ->name('pagos.store');
-Route::get('/alquileres-web/{id}/recibo', [WebController::class, 'reciboAlquilerWeb'])
+// Documentos para imprimir
+Route::get('/alquileres/{alquiler}/recibo', [AlquilerDocumentoController::class, 'recibo'])
     ->name('alquileres.recibo');
-Route::get('/alquileres-web/{id}/terminos', [WebController::class, 'terminosAlquilerWeb'])
+Route::get('/alquileres/{alquiler}/terminos', [AlquilerDocumentoController::class, 'compromiso'])
     ->name('alquileres.terminos');
-Route::get('/alquileres-web/{id}/devolucion', [WebController::class, 'devolucionAlquilerWeb'])
+Route::get('/alquileres/{alquiler}/devolucion', [AlquilerDocumentoController::class, 'devolucion'])
     ->name('alquileres.devolucion-carta');
 
- //- - - - CONTROL DE ALQUILERES - - - -
+// - - - - PAGOS - - - -
+
+Route::get('/alquileres/{alquiler}/pagar', [PagoController::class, 'create'])
+    ->name('pagos.create');
+Route::post('/alquileres/{alquiler}/pagar', [PagoController::class, 'store'])
+    ->name('pagos.store');
+
+// - - - - CALENDARIO - - - -
+
+Route::get('/calendario', [CalendarioController::class, 'index'])
+    ->name('calendario.index');
+Route::get('/calendario/eventos', [CalendarioController::class, 'eventos'])
+    ->name('calendario.eventos');
+
+// - - - - CONTROL Y ESTADÍSTICAS - - - -
 
 Route::get('/control-alquileres', [ControlAlquilerController::class, 'index'])
     ->name('control-alquileres.index');
 
- //- - - - ESTADÍSTICAS DE ALQUILERES - - - -
-
 Route::get('/estadisticas', [EstadisticasController::class, 'index'])
     ->name('estadisticas.index');
+Route::get('/estadisticas/exportar/xlsx', [EstadisticasController::class, 'exportarXlsx'])
+    ->name('estadisticas.exportar.xlsx');
+Route::post('/estadisticas/exportar/pdf', [EstadisticasController::class, 'exportarPdf'])
+    ->name('estadisticas.exportar.pdf');
 
- //- - - - EXPORTACIONES - - - -
+// - - - - EXPORTACIONES - - - -
 
 Route::get('/exportaciones/alquileres/excel', [ExportacionController::class, 'alquileresExcel'])
     ->name('exportaciones.alquileres.excel');
@@ -121,14 +136,12 @@ Route::get('/exportaciones/alquileres/pdf', [ExportacionController::class, 'alqu
     ->name('exportaciones.alquileres.pdf');
 Route::get('/exportaciones/movimientos/pdf', [ExportacionController::class, 'movimientosPdf'])
     ->name('exportaciones.movimientos.pdf');
-Route::get('/estadisticas/exportar/xlsx', [EstadisticasController::class, 'exportarXlsx'])
-    ->name('estadisticas.exportar.xlsx');
-Route::post('/estadisticas/exportar/pdf', [EstadisticasController::class, 'exportarPdf'])
-    ->name('estadisticas.exportar.pdf');
 
- //- - - - CALENDARIO - - - -
+// - - - - DIRECCIONES ANTERIORES (-web) - - - -
+// Los marcadores, las pestañas abiertas y los formularios que se cargaron antes
+// del cambio siguen funcionando: 308 conserva el método (POST, PUT, ...).
+// Esta ruta va al final para no tapar a ninguna de las anteriores.
 
-Route::get('/calendario-web', [CalendarioController::class, 'index'])
-    ->name('calendario.index');
-Route::get('/calendario-web/eventos', [CalendarioController::class, 'eventos'])
-    ->name('calendario.eventos');
+Route::any('/{seccion}-web/{resto?}', RutaAnteriorController::class)
+    ->where('seccion', 'productos|clientes|alquileres|calendario')
+    ->where('resto', '.*');

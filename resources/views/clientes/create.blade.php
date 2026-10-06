@@ -14,7 +14,7 @@
         </p>
     </div>
 
-    <a href="{{ route('clientes.web') }}" class="btn btn-outline-secondary rounded-pill">
+    <a href="{{ route('clientes.index') }}" class="btn btn-outline-secondary rounded-pill">
         ← Volver a clientes
     </a>
 </div>
@@ -170,7 +170,7 @@
                 </div>
 
                 <div class="d-flex justify-content-end gap-2 flex-wrap mt-4">
-                    <a href="{{ route('clientes.web') }}" class="btn btn-outline-secondary rounded-pill px-4">
+                    <a href="{{ route('clientes.index') }}" class="btn btn-outline-secondary rounded-pill px-4">
                         Cancelar
                     </a>
 

@@ -11,6 +11,7 @@
         'CANCELACION' => ['Cancelación', 'bg-danger-subtle text-danger'],
         'DANO' => ['Daño / extravío', 'bg-warning-subtle text-warning'],
         'DANO_ELIMINADO' => ['Registro eliminado', 'bg-secondary-subtle text-secondary'],
+        'FABRICACION' => ['Fabricación', 'bg-info-subtle text-info'],
         default => [$accion, 'bg-light text-dark'],
     };
 @endphp

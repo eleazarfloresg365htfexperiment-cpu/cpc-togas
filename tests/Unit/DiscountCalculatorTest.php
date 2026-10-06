@@ -35,7 +35,8 @@ class DiscountCalculatorTest extends TestCase
             ['producto' => (object) ['tipo_producto' => 'BIRRETE'], 'cantidad' => 5],
         ];
 
-        $this->assertSame(15.00, $calculator->calcularDescuentoPorTogas($items));
+        // 3 togas (las 5 unidades de birrete no cuentan) x Q5 de descuento por toga.
+        $this->assertSame(15.00, $calculator->calcularDescuentoPorTogas($items, 5.00));
     }
 
     public function test_descuento_no_puede_ser_mayor_al_subtotal(): void

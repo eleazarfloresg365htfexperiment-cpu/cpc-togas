@@ -25,7 +25,7 @@ class ControlAlquilerController extends Controller
 
         $reservasHoy = Alquiler::whereDate('fecha_alquiler', $hoy)->count();
 
-        $alquileresVigentes = Alquiler::whereIn('estado', ['RESERVADO', 'ENTREGADO'])->count();
+        $alquileresVigentes = Alquiler::whereIn('estado', array_merge(Alquiler::ESTADOS_ANTES_DE_ENTREGA, ['ENTREGADO']))->count();
 
         $noDevueltos = Alquiler::where('estado', 'ENTREGADO')->count();
 
@@ -34,7 +34,7 @@ class ControlAlquilerController extends Controller
             ->count();
 
         $entregasHoy = Alquiler::whereDate('fecha_entrega', $hoy)
-            ->where('estado', 'RESERVADO')
+            ->whereIn('estado', Alquiler::ESTADOS_ANTES_DE_ENTREGA)
             ->count();
 
         $entregadosHoy = Alquiler::whereDate('fecha_entrega', $hoy)
@@ -85,7 +85,7 @@ class ControlAlquilerController extends Controller
         match ($filtro) {
             'todos' => $alquileresQuery,
 
-            'reservados' => $alquileresQuery->where('estado', 'RESERVADO'),
+            'reservados' => $alquileresQuery->whereIn('estado', Alquiler::ESTADOS_ANTES_DE_ENTREGA),
 
             'entregados' => $alquileresQuery->where('estado', 'ENTREGADO'),
 
@@ -101,7 +101,7 @@ class ControlAlquilerController extends Controller
 
             'entregas_hoy' => $alquileresQuery
                 ->whereDate('fecha_entrega', $hoy)
-                ->where('estado', 'RESERVADO'),
+                ->whereIn('estado', Alquiler::ESTADOS_ANTES_DE_ENTREGA),
 
             'entregados_hoy' => $alquileresQuery
                 ->whereDate('fecha_entrega', $hoy)
@@ -115,7 +115,7 @@ class ControlAlquilerController extends Controller
                 ->whereDate('fecha_devolucion_real', $hoy)
                 ->where('estado', 'DEVUELTO'),
 
-            default => $alquileresQuery->whereIn('estado', ['RESERVADO', 'ENTREGADO']),
+            default => $alquileresQuery->whereIn('estado', array_merge(Alquiler::ESTADOS_ANTES_DE_ENTREGA, ['ENTREGADO'])),
         };
 
         $alquileres = $alquileresQuery
@@ -123,7 +123,7 @@ class ControlAlquilerController extends Controller
                 CASE 
                     WHEN estado = 'ENTREGADO' AND fecha_devolucion_programada < CURDATE() THEN 1
                     WHEN estado = 'ENTREGADO' THEN 2
-                    WHEN estado = 'RESERVADO' THEN 3
+                    WHEN estado IN ('RESERVADO', 'EN_FABRICACION', 'LISTO_PARA_ENTREGA') THEN 3
                     ELSE 4
                 END
             ")

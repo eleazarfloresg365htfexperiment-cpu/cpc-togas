@@ -21,7 +21,7 @@
 
 <div class="d-flex gap-2 flex-wrap align-items-center">
     <span class="badge text-bg-light rounded-pill px-3 py-2">
-        {{ $alquileres->count() }} registros
+        {{ $alquileres->total() }} registros
     </span>
 
     <a href="{{ route('exportaciones.alquileres.excel', request()->query()) }}"
@@ -36,7 +36,7 @@
 </div>
 
 <div class="page-card mb-4">
-    <form method="GET" action="{{ route('alquileres.web') }}">
+    <form method="GET" action="{{ route('alquileres.index') }}">
         <div class="row g-3 align-items-end">
 
             <div class="col-md-4">
@@ -56,6 +56,12 @@
                     <option value="">Todos</option>
                     <option value="RESERVADO" {{ request('estado') == 'RESERVADO' ? 'selected' : '' }}>
                         Reservados
+                    </option>
+                    <option value="EN_FABRICACION" {{ request('estado') == 'EN_FABRICACION' ? 'selected' : '' }}>
+                        En fabricación
+                    </option>
+                    <option value="LISTO_PARA_ENTREGA" {{ request('estado') == 'LISTO_PARA_ENTREGA' ? 'selected' : '' }}>
+                        Listos para entrega
                     </option>
                     <option value="ENTREGADO" {{ request('estado') == 'ENTREGADO' ? 'selected' : '' }}>
                         Entregados
@@ -90,7 +96,7 @@
                     Filtrar
                 </button>
 
-                <a href="{{ route('alquileres.web') }}" class="btn btn-outline-secondary flex-fill">
+                <a href="{{ route('alquileres.index') }}" class="btn btn-outline-secondary flex-fill">
                     Limpiar
                 </a>
             </div>
@@ -104,21 +110,26 @@
     <div class="stat-card">
         <div class="stat-icon">🧾</div>
         <div class="stat-label">Total alquileres</div>
-        <div class="stat-value">{{ $alquileres->count() }}</div>
+        <div class="stat-value">{{ $resumen['total'] }}</div>
         <div class="stat-sub">Registros creados</div>
     </div>
 
     <div class="stat-card">
         <div class="stat-icon">🕒</div>
-        <div class="stat-label">Reservados</div>
-        <div class="stat-value">{{ $alquileres->where('estado', 'RESERVADO')->count() }}</div>
-        <div class="stat-sub">Pendientes de entrega</div>
+        <div class="stat-label">Por entregar</div>
+        <div class="stat-value">{{ $resumen['porEntregar'] }}</div>
+        <div class="stat-sub">
+            Reservados y en fabricación
+            @if($resumen['enFabricacion'] > 0)
+                · {{ $resumen['enFabricacion'] }} en fabricación
+            @endif
+        </div>
     </div>
 
     <div class="stat-card">
         <div class="stat-icon">🚚</div>
         <div class="stat-label">Entregados</div>
-        <div class="stat-value">{{ $alquileres->where('estado', 'ENTREGADO')->count() }}</div>
+        <div class="stat-value">{{ $resumen['entregados'] }}</div>
         <div class="stat-sub">Actualmente fuera</div>
     </div>
 
@@ -126,7 +137,7 @@
         <div class="stat-icon">💰</div>
         <div class="stat-label">Por cobrar</div>
         <div class="stat-value">
-            Q {{ number_format($alquileres->where('estado', '!=', 'CANCELADO')->sum('saldo_pendiente'), 2) }}
+            Q {{ number_format($resumen['porCobrar'], 2) }}
         </div>
         <div class="stat-sub">Excluye cancelados</div>
     </div>
@@ -144,11 +155,11 @@
         </div>
 
         <span class="badge text-bg-light rounded-pill px-3 py-2">
-            {{ $alquileres->count() }} registros
+            {{ $alquileres->total() }} registros
         </span>
     </div>
 
-    @if($alquileres->count() > 0)
+    @if($alquileres->isNotEmpty())
         <div class="table-responsive">
             <table class="table table-modern align-middle mb-0">
                 <thead>
@@ -212,6 +223,10 @@
                             <td>
                                 @if($alquiler->estado === 'RESERVADO')
                                     <span class="badge-soft badge-ajuste">RESERVADO</span>
+                                @elseif($alquiler->estado === 'EN_FABRICACION')
+                                    <span class="badge-soft" style="background:#ede9fe; color:#5b21b6;">EN FABRICACIÓN</span>
+                                @elseif($alquiler->estado === 'LISTO_PARA_ENTREGA')
+                                    <span class="badge-soft" style="background:#ccfbf1; color:#115e59;">LISTO PARA ENTREGA</span>
                                 @elseif($alquiler->estado === 'ENTREGADO')
                                     <span class="badge-soft badge-alquiler">ENTREGADO</span>
                                 @elseif($alquiler->estado === 'DEVUELTO')
@@ -280,7 +295,7 @@
                                         </a>
                                     @endif
 
-                                    @if($alquiler->estado === 'RESERVADO')
+                                    @if($alquiler->isEntregable())
                                         <form action="{{ route('alquileres.entregar', $alquiler->id) }}"
                                               method="POST"
                                               class="d-inline confirm-action-form"
@@ -345,6 +360,10 @@
                 </tbody>
 
             </table>
+        </div>
+
+        <div class="mt-3">
+            {{ $alquileres->links() }}
         </div>
     @else
         <div class="alert alert-light border rounded-4 mb-0">

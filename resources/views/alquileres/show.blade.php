@@ -171,6 +171,8 @@
 
     $badgeEstadoAlquiler = match ($estadoAlquiler) {
         'RESERVADO' => 'badge-soft-warning',
+        'EN_FABRICACION' => 'badge-soft-warning',
+        'LISTO_PARA_ENTREGA' => 'badge-soft-success',
         'ENTREGADO' => 'badge-soft-success',
         'DEVUELTO' => 'badge-soft-secondary',
         'CANCELADO' => 'badge-soft-danger',
@@ -226,7 +228,7 @@
         </div>
 
         <div class="d-flex flex-wrap gap-2">
-            <a href="{{ route('alquileres.web') }}" class="btn btn-outline-secondary rounded-pill">
+            <a href="{{ route('alquileres.index') }}" class="btn btn-outline-secondary rounded-pill">
                 ← Volver a alquileres
             </a>
 
@@ -329,7 +331,7 @@
                 <div class="mb-3">
                     <div class="text-muted small">Estado del alquiler</div>
                     <span class="badge {{ $badgeEstadoAlquiler }} rounded-pill px-3 py-2">
-                        {{ $estadoAlquiler }}
+                        {{ str_replace('_', ' ', $estadoAlquiler) }}
                     </span>
                 </div>
 
@@ -983,6 +985,8 @@
         </div>
     </div>
 
+    @include('alquileres.partials.fabricacion')
+
     @include('alquileres.partials.danos')
 
     {{-- PAGOS --}}
@@ -1080,7 +1084,17 @@
 
                 <div class="d-flex flex-wrap justify-content-center gap-2">
 
-                    @if($alquiler->estado === 'RESERVADO')
+                    @if($alquiler->estado === 'EN_FABRICACION')
+                        <div class="w-100">
+                            <div class="alert alert-warning rounded-4 text-start mb-2">
+                                <div class="fw-bold mb-1">🏭 En fabricación</div>
+                                Este alquiler no se puede entregar hasta registrar lo fabricado en la sección
+                                <a href="#fabricacion" class="alert-link">Fabricación</a>.
+                            </div>
+                        </div>
+                    @endif
+
+                    @if($alquiler->isEntregable())
                         <form action="{{ route('alquileres.entregar', $alquiler->id) }}" method="POST">
                             @csrf
                             <button type="submit" class="btn btn-primary rounded-pill">
@@ -1347,7 +1361,7 @@
                         </script>
                     @endif
 
-                    <a href="{{ route('alquileres.web') }}" class="btn btn-outline-secondary rounded-pill">
+                    <a href="{{ route('alquileres.index') }}" class="btn btn-outline-secondary rounded-pill">
                         ← Volver
                     </a>
 

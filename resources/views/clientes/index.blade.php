@@ -20,7 +20,7 @@
 </div>
 
 <div class="page-card mb-4">
-    <form method="GET" action="{{ route('clientes.web') }}">
+    <form method="GET" action="{{ route('clientes.index') }}">
         <div class="row g-3 align-items-end">
 
             <div class="col-md-6">
@@ -52,7 +52,7 @@
                     Filtrar
                 </button>
 
-                <a href="{{ route('clientes.web') }}" class="btn btn-outline-secondary flex-fill">
+                <a href="{{ route('clientes.index') }}" class="btn btn-outline-secondary flex-fill">
                     Limpiar
                 </a>
             </div>
@@ -66,21 +66,21 @@
     <div class="stat-card">
         <div class="stat-icon">👥</div>
         <div class="stat-label">Total clientes</div>
-        <div class="stat-value">{{ $clientes->count() }}</div>
+        <div class="stat-value">{{ $resumen['total'] }}</div>
         <div class="stat-sub">Clientes registrados</div>
     </div>
 
     <div class="stat-card">
         <div class="stat-icon">✅</div>
         <div class="stat-label">Clientes activos</div>
-        <div class="stat-value">{{ $clientes->where('activo', true)->count() }}</div>
+        <div class="stat-value">{{ $resumen['activos'] }}</div>
         <div class="stat-sub">Disponibles para nuevos alquileres</div>
     </div>
 
     <div class="stat-card">
         <div class="stat-icon">⛔</div>
         <div class="stat-label">Clientes inactivos</div>
-        <div class="stat-value">{{ $clientes->where('activo', false)->count() }}</div>
+        <div class="stat-value">{{ $resumen['inactivos'] }}</div>
         <div class="stat-sub">No aparecen al crear alquileres</div>
     </div>
 
@@ -97,11 +97,11 @@
         </div>
 
         <span class="badge text-bg-light rounded-pill px-3 py-2">
-            {{ $clientes->count() }} registros
+            {{ $clientes->total() }} registros
         </span>
     </div>
 
-    @if($clientes->count() > 0)
+    @if($clientes->isNotEmpty())
         <div class="clientes-table-wrap">
             <table class="table tabla-clientes align-middle">
                 <thead>
@@ -230,6 +230,10 @@
                 </tbody>
 
             </table>
+        </div>
+
+        <div class="mt-3">
+            {{ $clientes->links() }}
         </div>
     @else
         <div class="alert alert-light border rounded-4 mb-0">

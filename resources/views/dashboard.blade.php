@@ -10,25 +10,25 @@
         <div class="section-title">⚡ Accesos rápidos</div>
 
         <div class="quick-grid">
-            <a href="{{ url('/alquileres-web/crear') }}" class="quick-card">
+            <a href="{{ route('alquileres.create') }}" class="quick-card">
                 <div class="quick-icon">🧾</div>
                 <div class="card-title-mini">Nuevo alquiler</div>
                 <p class="card-desc-mini">Registrar un alquiler rápidamente</p>
             </a>
 
-            <a href="{{ url('/clientes-web/crear') }}" class="quick-card">
+            <a href="{{ route('clientes.create') }}" class="quick-card">
                 <div class="quick-icon">👤</div>
                 <div class="card-title-mini">Registrar cliente</div>
                 <p class="card-desc-mini">Agregar un nuevo cliente al sistema</p>
             </a>
 
-            <a href="{{ url('/productos-web') }}" class="quick-card">
+            <a href="{{ route('productos.index') }}" class="quick-card">
                 <div class="quick-icon">👗</div>
                 <div class="card-title-mini">Ver productos</div>
                 <p class="card-desc-mini">Consultar togas, birretes y collarines</p>
             </a>
 
-            <a href="{{ url('/inventario/movimientos') }}" class="quick-card">
+            <a href="{{ route('inventario.movimientos') }}" class="quick-card">
                 <div class="quick-icon">📦</div>
                 <div class="card-title-mini">Ver movimientos</div>
                 <p class="card-desc-mini">Revisar entradas, ajustes y devoluciones</p>
@@ -138,7 +138,7 @@
     <div class="page-card p-4">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <div class="section-title mb-0">🧾 Movimientos recientes de inventario</div>
-            <a href="{{ url('/inventario/movimientos') }}" class="btn btn-sm btn-outline-primary rounded-pill">
+            <a href="{{ route('inventario.movimientos') }}" class="btn btn-sm btn-outline-primary rounded-pill">
                 Ver todos
             </a>
         </div>

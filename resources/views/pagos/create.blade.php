@@ -19,7 +19,7 @@
             ← Volver al detalle
         </a>
 
-        <a href="{{ route('alquileres.web') }}" class="btn btn-outline-primary rounded-pill">
+        <a href="{{ route('alquileres.index') }}" class="btn btn-outline-primary rounded-pill">
             🧾 Ver alquileres
         </a>
     </div>

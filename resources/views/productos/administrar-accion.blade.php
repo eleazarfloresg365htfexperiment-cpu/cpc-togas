@@ -30,7 +30,7 @@
         </p>
     </div>
 
-    <a href="{{ url('/productos-web/administrar') }}" class="btn btn-outline-secondary rounded-pill">
+    <a href="{{ route('productos.administrar') }}" class="btn btn-outline-secondary rounded-pill">
         ← Volver al panel
     </a>
 </div>
@@ -152,23 +152,23 @@
                             <td class="text-end">
 
                                 @if($accion === 'editar')
-                                    <a href="{{ url('/productos-web/' . $producto->id . '/editar') }}"
+                                    <a href="{{ route('productos.edit', $producto) }}"
                                        class="btn btn-sm btn-primary rounded-pill action-main-btn">
                                         ✏️ Editar
                                     </a>
                                 @elseif($accion === 'entrada')
-                                    <a href="{{ url('/productos-web/' . $producto->id . '/entrada') }}"
+                                    <a href="{{ route('productos.entrada', $producto) }}"
                                        class="btn btn-sm btn-success rounded-pill action-main-btn">
                                         ➕ Entrada
                                     </a>
                                 @elseif($accion === 'ajuste')
-                                    <a href="{{ url('/productos-web/' . $producto->id . '/ajuste') }}"
+                                    <a href="{{ route('productos.ajuste', $producto) }}"
                                        class="btn btn-sm btn-warning rounded-pill action-main-btn">
                                         ⚙️ Ajuste
                                     </a>
                                 @elseif($accion === 'estado')
                                     @if($producto->activo)
-                                        <form action="{{ url('/productos-web/' . $producto->id . '/desactivar') }}"
+                                        <form action="{{ route('productos.desactivar', $producto) }}"
                                             method="POST"
                                             class="d-inline confirm-action-form"
                                             data-title="¿Desactivar producto?"
@@ -184,7 +184,7 @@
                                             </button>
                                         </form>
                                     @else
-                                        <form action="{{ url('/productos-web/' . $producto->id . '/reactivar') }}"
+                                        <form action="{{ route('productos.reactivar', $producto) }}"
                                               method="POST"
                                               onsubmit="return confirm('¿Deseas reactivar este producto?');"
                                               class="d-inline">
