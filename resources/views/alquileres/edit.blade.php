@@ -222,7 +222,7 @@
                         <div class="col-md-4">
                             <label class="form-label" for="responsable">Quién hace el cambio</label>
                             <input type="text" name="responsable" id="responsable" class="form-control"
-                                   maxlength="255" value="{{ old('responsable') }}"
+                                   maxlength="255" value="{{ old('responsable', auth()->user()?->nombre_corto) }}"
                                    placeholder="Opcional">
                         </div>
                     </div>

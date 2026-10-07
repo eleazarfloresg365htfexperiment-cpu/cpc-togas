@@ -422,8 +422,15 @@
                 </div>
 
                 <div class="sidebar-user">
-                    <div class="name">👤 Administración</div>
+                    <div class="name">👤 {{ auth()->user()?->nombre_corto ?? 'Administración' }}</div>
                     <div class="role">Centro Profesional de Cómputo CPC</div>
+
+                    @auth
+                        <form method="POST" action="{{ route('logout') }}" class="mt-2">
+                            @csrf
+                            <button type="submit" class="btn btn-sm btn-light rounded-pill px-3">Cerrar sesión</button>
+                        </form>
+                    @endauth
                 </div>
 
                 <nav class="nav flex-column sidebar-nav">
@@ -459,6 +466,11 @@
                     <a href="{{ route('calendario.index') }}"
                     class="nav-link {{ request()->routeIs('calendario.*') ? 'active' : '' }}">
                         📅 Calendario
+                    </a>
+
+                    <a href="{{ route('usuarios.index') }}"
+                    class="nav-link {{ request()->routeIs('usuarios.*') ? 'active' : '' }}">
+                        🔐 Usuarios
                     </a>
                 </nav>
             </div>

@@ -64,7 +64,7 @@ class ProductoController extends Controller
 
     public function store(ProductoRequest $request, ProductoService $productos)
     {
-        $productos->crear($request->validated());
+        $productos->crear($request->validated(), auth()->id());
 
         return redirect()
             ->route('productos.index')

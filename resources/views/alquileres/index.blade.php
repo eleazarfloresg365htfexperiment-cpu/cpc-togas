@@ -393,6 +393,7 @@
                         <textarea id="swalMotivoIdx" class="swal2-textarea m-0 w-100" rows="3"
                                   placeholder="Motivo de la cancelación (obligatorio)"></textarea>
                         <input id="swalResponsableIdx" class="swal2-input m-0 mt-2 w-100"
+                               value="{{ str_replace(['`', '${'], '', auth()->user()?->nombre_corto ?? '') }}"
                                placeholder="Quién cancela (opcional)">`,
                     icon: 'warning',
                     showCancelButton: true,

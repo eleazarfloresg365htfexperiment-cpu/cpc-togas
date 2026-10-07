@@ -152,7 +152,7 @@
                                 <div class="col-md-4">
                                     <label class="form-label fw-semibold" for="dano_responsable">Quién registra</label>
                                     <input type="text" name="responsable" id="dano_responsable" class="form-control"
-                                           maxlength="255" value="{{ old('responsable') }}" placeholder="Opcional">
+                                           maxlength="255" value="{{ old('responsable', auth()->user()?->nombre_corto) }}" placeholder="Opcional">
                                 </div>
 
                                 <div class="col-12">

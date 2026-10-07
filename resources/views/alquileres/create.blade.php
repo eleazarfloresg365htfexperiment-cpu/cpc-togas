@@ -319,12 +319,13 @@
                                     <label for="representante_alquiler" class="form-label">
                                         Representante o encargado del alquiler
                                     </label>
+                                    <small class="d-block text-muted mb-1">Se llena con tu nombre; cámbialo si atiende otra persona.</small>
                                     <input
                                         type="text"
                                         name="representante_alquiler"
                                         id="representante_alquiler"
                                         class="form-control"
-                                        value="{{ old('representante_alquiler') }}"
+                                        value="{{ old('representante_alquiler', auth()->user()?->nombre_corto) }}"
                                         placeholder="Ej. Nombre de quien atendió el alquiler"
                                     >
                                 </div>

@@ -116,7 +116,7 @@ class AlquilerController extends Controller
                 fechaEntrega: $datos['fecha_entrega'],
                 fechaDevolucionProgramada: $datos['fecha_devolucion_programada'],
                 observaciones: $datos['observaciones'] ?? null,
-                usuarioId: null,
+                usuarioId: auth()->id(),
                 fabricacionData: $request->datosDeFabricacion(),
             );
 

@@ -79,7 +79,7 @@ class InventarioController extends Controller
                 cantidad: (int) $request->cantidad,
                 motivo: $request->motivo,
                 referencia: $request->referencia,
-                usuarioId: null
+                usuarioId: auth()->id()
             );
 
             return redirect()
@@ -111,7 +111,7 @@ class InventarioController extends Controller
                 nuevoStockDisponible: (int) $request->nuevo_stock_disponible,
                 motivo: $request->motivo,
                 referencia: $request->referencia,
-                usuarioId: null
+                usuarioId: auth()->id()
             );
 
             return redirect()

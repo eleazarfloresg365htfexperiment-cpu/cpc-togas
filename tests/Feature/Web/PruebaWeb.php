@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Web;
 
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Tests\Support\ConBaseDeDatosDePrueba;
 use Tests\Support\CreaDatos;
@@ -16,12 +17,24 @@ abstract class PruebaWeb extends TestCase
     use ConBaseDeDatosDePrueba;
     use CreaDatos;
 
+    protected User $usuario;
+
     protected function setUp(): void
     {
         parent::setUp();
 
         // Las pruebas no necesitan los archivos compilados de Vite.
         $this->withoutVite();
+
+        // Las pantallas requieren sesión: cada prueba entra con un usuario.
+        $this->usuario = User::create([
+            'usuario' => 'prueba',
+            'nombres' => 'Usuaria',
+            'apellidos' => 'De Prueba',
+            'password' => 'secreto123',
+            'activo' => true,
+        ]);
+        $this->actingAs($this->usuario);
 
         $this->registrarFuncionesDeMysql();
     }

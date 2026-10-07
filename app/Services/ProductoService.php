@@ -18,9 +18,9 @@ class ProductoService
      *
      * @param array $datos Datos ya validados del formulario.
      */
-    public function crear(array $datos): Producto
+    public function crear(array $datos, ?int $usuarioId = null): Producto
     {
-        return DB::transaction(function () use ($datos) {
+        return DB::transaction(function () use ($datos, $usuarioId) {
             $producto = Producto::create([
                 'codigo' => $datos['codigo'],
                 'nombre' => $datos['nombre'],
@@ -48,7 +48,7 @@ class ProductoService
                     'stock_nuevo_alquilado' => 0,
                     'motivo' => 'Registro inicial de producto',
                     'referencia' => 'Producto nuevo',
-                    'usuario_id' => null,
+                    'usuario_id' => $usuarioId,
                 ]);
             }
 
