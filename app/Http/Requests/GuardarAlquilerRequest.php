@@ -122,6 +122,7 @@ class GuardarAlquilerRequest extends FormRequest
             }
 
             $error = $this->errorDeHorasDelMismoDia()
+                ?? $this->errorDeIncluidos($validator->getData()['productos'])
                 ?? $this->errorDeExtras($validator->getData()['productos']);
 
             if ($error !== null) {
@@ -143,6 +144,29 @@ class GuardarAlquilerRequest extends FormRequest
                 'hora_devolucion_programada',
                 'Si la entrega y devolución son el mismo día, la hora de devolución debe ser posterior a la hora de entrega.',
             ];
+        }
+
+        return null;
+    }
+
+    /**
+     * "Birrete incluido" / "Borla incluida" marcados sin elegir cuál: antes
+     * se guardaba el alquiler sin ese accesorio y sin avisar.
+     *
+     * @return array{0: string, 1: string}|null
+     */
+    private function errorDeIncluidos(array $productos): ?array
+    {
+        foreach ($productos as $indice => $producto) {
+            $numero = $indice + 1;
+
+            if (!empty($producto['birrete_incluido']) && empty($producto['birrete_id'])) {
+                return ['productos', "En la toga seleccionada #{$numero}, marcaste \"Birrete incluido\" pero no elegiste cuál birrete."];
+            }
+
+            if (!empty($producto['borla_incluida']) && empty($producto['borla_id'])) {
+                return ['productos', "En la toga seleccionada #{$numero}, marcaste \"Borla incluida\" pero no elegiste cuál borla."];
+            }
         }
 
         return null;

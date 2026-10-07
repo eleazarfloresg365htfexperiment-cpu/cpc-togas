@@ -585,63 +585,22 @@
 
                 <tbody>
                     @foreach ($alquiler->detalles as $detalle)
-                        @php
-                            $productoDetalle = $detalle->producto;
-                            $tallaDetalle = $productoDetalle?->toga?->talla ?? 'N/A';
-
-                            $accesoriosDetalle = collect($detalle->accesorios ?? []);
-
-                            $birretesDetalle = $accesoriosDetalle->filter(function ($accesorio) {
-                                return ($accesorio->producto->tipo_producto ?? null) === 'BIRRETE';
-                            });
-
-                            $birretesTexto = $birretesDetalle->map(function ($accesorio) {
-                                $productoAccesorio = $accesorio->producto;
-                                $tipoBirrete = $productoAccesorio?->birrete?->tipo ?? null;
-
-                                if ($tipoBirrete === 'UNIVERSITARIO') {
-                                    return 'Universitario x' . $accesorio->cantidad;
-                                }
-
-                                return ($productoAccesorio->nombre ?? 'Birrete') . ' x' . $accesorio->cantidad;
-                            })->implode(', ');
-
-                            $birreteUniversitario = $birretesDetalle->first(function ($accesorio) {
-                                return ($accesorio->producto->birrete->tipo ?? null) === 'UNIVERSITARIO';
-                            });
-
-                            $tieneBirreteUniversitario = $birreteUniversitario !== null;
-
-                            $carreraBirrete = $tieneBirreteUniversitario
-                                ? ($birreteUniversitario->producto->birrete->carrera ?? null)
-                                : null;
-
-                            $borlasDetalle = $accesoriosDetalle->filter(function ($accesorio) {
-                                return ($accesorio->producto->tipo_producto ?? null) === 'BORLA'
-                                    || str_contains(strtoupper($accesorio->producto->nombre ?? ''), 'BORLA');
-                            });
-
-                            $borlasTexto = $borlasDetalle->map(function ($accesorio) {
-                                return ($accesorio->producto->nombre ?? 'Borla') . ' x' . $accesorio->cantidad;
-                            })->implode(', ');
-                        @endphp
+                        @php $resumen = $detalle->resumenRapido(); @endphp
 
                         <tr>
-                            <td><strong>{{ $tallaDetalle }}</strong></td>
+                            <td><strong>{{ $resumen['talla'] }}</strong></td>
                             <td class="text-right">{{ $detalle->cantidad }}</td>
-                            <td>{{ $birretesTexto ?: 'Sin birrete' }}</td>
-
+                            <td>{{ $resumen['birretes'] ?: 'Sin birrete' }}</td>
                             <td>
-                                @if ($tieneBirreteUniversitario)
-                                    {{ $borlasTexto ?: 'Incluida / no detallada' }}
+                                @if ($resumen['borlas'])
+                                    {{ $resumen['borlas'] }}
                                 @else
-                                    <span class="muted">-</span>
+                                    <span class="muted">Sin borla</span>
                                 @endif
                             </td>
-
                             <td>
-                                @if ($tieneBirreteUniversitario)
-                                    {{ $carreraBirrete ?: 'No registrada' }}
+                                @if ($resumen['carrera'])
+                                    {{ $resumen['carrera'] }}
                                 @else
                                     <span class="muted">-</span>
                                 @endif

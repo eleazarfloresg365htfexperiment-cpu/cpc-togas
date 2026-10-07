@@ -22,6 +22,7 @@ class AlquilerDocumentoController extends Controller
             'detalles.accesorios.producto.birrete',
             'detalles.accesorios.producto.borla',
             'detalles.accesorios.producto.collarin',
+            'detalles.accesorios.producto.capa',
         ]);
 
         return view('alquileres.recibo', compact('alquiler'));

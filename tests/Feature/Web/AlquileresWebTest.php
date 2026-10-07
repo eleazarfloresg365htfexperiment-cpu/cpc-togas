@@ -327,6 +327,94 @@ class AlquileresWebTest extends PruebaWeb
         $this->assertSame(2, Alquiler::count());
     }
 
+    public function test_birrete_o_borla_incluidos_sin_elegir_cual_avisan_en_vez_de_perderse(): void
+    {
+        $this->from(route('alquileres.create'))
+            ->post(route('alquileres.store'), $this->formularioAlquiler($this->cliente, $this->toga, $this->collarin, [
+                'cantidad' => 1,
+                'birrete_incluido' => 1,
+                'birrete_id' => '',
+            ]))
+            ->assertRedirect(route('alquileres.create'))
+            ->assertSessionHasErrors(['productos' => 'En la toga seleccionada #1, marcaste "Birrete incluido" pero no elegiste cuál birrete.']);
+
+        $birrete = $this->birrete('NORMAL');
+
+        $this->from(route('alquileres.create'))
+            ->post(route('alquileres.store'), $this->formularioAlquiler($this->cliente, $this->toga, $this->collarin, [
+                'cantidad' => 1,
+                'birrete_incluido' => 1,
+                'birrete_id' => $birrete->id,
+                'borla_incluida' => 1,
+                'borla_id' => '',
+            ]))
+            ->assertSessionHasErrors(['productos' => 'En la toga seleccionada #1, marcaste "Borla incluida" pero no elegiste cuál borla.']);
+
+        $this->assertSame(0, Alquiler::count());
+
+        // Con el birrete elegido sí se guarda, y queda en el alquiler.
+        $this->post(route('alquileres.store'), $this->formularioAlquiler($this->cliente, $this->toga, $this->collarin, [
+            'cantidad' => 1,
+            'birrete_incluido' => 1,
+            'birrete_id' => $birrete->id,
+        ]))->assertSessionHasNoErrors();
+
+        $alquiler = Alquiler::with('detalles.accesorios')->firstOrFail();
+        $this->assertTrue(
+            $alquiler->detalles->first()->accesorios->contains(fn ($a) => (int) $a->producto_id === $birrete->id && $a->tipo_cobro === 'INCLUIDO')
+        );
+    }
+
+    public function test_detalles_rapidos_muestran_birretes_borlas_y_carrera(): void
+    {
+        $this->toga->toga->update(['talla' => 'XL']);
+        $birrete = $this->birrete('NORMAL', ['nombre' => 'Birrete negro']);
+        $borla = $this->borla('Rojo', ['nombre' => 'Borla roja'], 'NORMAL');
+        $borlaExtra = $this->borla('Dorado', ['nombre' => 'Borla dorada'], 'NORMAL');
+
+        $this->post(route('alquileres.store'), $this->formularioAlquiler($this->cliente, $this->toga, $this->collarin, [
+            'cantidad' => 1,
+            'birrete_incluido' => 1,
+            'birrete_id' => $birrete->id,
+            'borla_incluida' => 1,
+            'borla_id' => $borla->id,
+            'borla_extra_id' => $borlaExtra->id,
+            'borla_extra_cantidad' => 2,
+        ]))->assertSessionHasNoErrors();
+
+        // Universitaria con capa de Derecho: la carrera sale de la capa.
+        $togaU = $this->toga('UNIVERSITARIA');
+        $collarinU = $this->collarin('UNIVERSITARIO', 'Azul');
+        $capa = $this->capa('DERECHO', 'Rojo');
+        $birreteU = $this->birrete('UNIVERSITARIO', ['nombre' => 'Birrete U']);
+        $borlaU = $this->borla('Rojo', ['nombre' => 'Borla roja U'], 'UNIVERSITARIA');
+
+        $this->post(route('alquileres.store'), $this->formularioAlquiler($this->cliente, $togaU, $collarinU, [
+            'cantidad' => 1,
+            'capa_id' => $capa->id,
+            'birrete_incluido' => 1,
+            'birrete_id' => $birreteU->id,
+            'borla_incluida' => 1,
+            'borla_id' => $borlaU->id,
+        ]))->assertSessionHasNoErrors();
+
+        [$normal, $universitario] = Alquiler::orderBy('id')->get()->all();
+
+        foreach ([route('alquileres.show', $normal), route('alquileres.recibo', $normal)] as $url) {
+            $this->get($url)->assertOk()
+                ->assertSee('Birrete negro (Normal) x1')
+                ->assertSee('Borla roja (Rojo · Normal) x1')
+                ->assertSee('Borla dorada (Dorado · Normal) x2 (extra)');
+        }
+
+        foreach ([route('alquileres.show', $universitario), route('alquileres.recibo', $universitario)] as $url) {
+            $this->get($url)->assertOk()
+                ->assertSee('Birrete U (Universitario) x1')
+                ->assertSee('Borla roja U (Rojo · Universitaria) x1')
+                ->assertSee('Derecho');
+        }
+    }
+
     // ------------------------------------------------- entrega y devolución
 
     public function test_no_se_entrega_sin_pago_completo(): void

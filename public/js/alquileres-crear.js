@@ -864,8 +864,100 @@ document.addEventListener('DOMContentLoaded', function () {
                 actualizarBorlaIncluida(productoId);
             }
 
+            sincronizarIncluido(productoId, 'birrete');
+            sincronizarIncluido(productoId, 'borla');
+
         });
 
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | La casilla "incluido" y su lista van juntas (birrete y borla)
+    |--------------------------------------------------------------------------
+    |
+    | Antes se podía marcar "Birrete incluido" sin elegir cuál birrete; el
+    | alquiler se guardaba sin él y sin avisar. Ahora:
+    |  - al marcar la casilla se elige solo el birrete que corresponde al tipo
+    |    de toga (si hay) y la lista pasa a ser obligatoria;
+    |  - al elegir algo en la lista se marca la casilla, y al volver a
+    |    "Selecciona..." se desmarca;
+    |  - al desmarcar la casilla se vacía la lista.
+    */
+    function birreteSugerido(productoId, select) {
+        const togaItem = document.getElementById('toga_item_' + productoId);
+        const tipoToga = (togaItem?.dataset.tipo || '').toUpperCase();
+        const tiposValidos = tipoToga === 'UNIVERSITARIA'
+            ? ['UNIVERSITARIO']
+            : ['NORMAL', 'ESTANDAR'];
+
+        const opciones = Array.from(select.options).filter(function (opcion) {
+            return opcion.value &&
+                !opcion.hidden &&
+                tiposValidos.includes((opcion.dataset.tipo || '').toUpperCase());
+        });
+
+        return opciones.find(function (opcion) {
+            return Number(opcion.dataset.stock || 0) > 0;
+        }) || opciones[0] || null;
+    }
+
+    function sincronizarIncluido(productoId, tipo) {
+        const check = document.getElementById(
+            (tipo === 'birrete' ? 'birrete_incluido_' : 'borla_incluida_') + productoId
+        );
+        const select = document.getElementById(tipo + '_' + productoId);
+
+        if (!check || !select) {
+            return;
+        }
+
+        select.required = check.checked && !check.disabled;
+
+        if (!check.checked) {
+            select.value = '';
+            return;
+        }
+
+        if (tipo === 'birrete' && !select.value) {
+            const sugerido = birreteSugerido(productoId, select);
+
+            if (sugerido) {
+                select.value = sugerido.value;
+            }
+        }
+
+        actualizarResumen(productoId);
+    }
+
+    document.querySelectorAll('select.accesorio-select').forEach(function (select) {
+        const coincidencia = (select.id || '').match(/^(birrete|borla)_(\d+)$/);
+
+        if (!coincidencia) {
+            return;
+        }
+
+        const tipo = coincidencia[1];
+        const productoId = coincidencia[2];
+
+        select.addEventListener('change', function () {
+            const check = document.getElementById(
+                (tipo === 'birrete' ? 'birrete_incluido_' : 'borla_incluida_') + productoId
+            );
+
+            // Elegir uno marca la casilla; volver a "Selecciona..." la desmarca.
+            if (check && !check.disabled && check.checked !== !!select.value) {
+                check.checked = !!select.value;
+                actualizarAccesoriosIncluidos(productoId);
+            }
+
+            // Quitar el birrete también quita la borla incluida.
+            sincronizarIncluido(productoId, 'birrete');
+            sincronizarIncluido(productoId, 'borla');
+        });
+
+        // Al volver con errores (o al recargar), dejar todo coherente.
+        sincronizarIncluido(productoId, tipo);
     });
 
     const birreteSelects = document.querySelectorAll('.accesorio-select[id^="birrete_"]');

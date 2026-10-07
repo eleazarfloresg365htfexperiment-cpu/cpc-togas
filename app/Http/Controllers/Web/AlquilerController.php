@@ -159,6 +159,7 @@ class AlquilerController extends Controller
             'detalles.accesorios.producto.birrete',
             'detalles.accesorios.producto.borla',
             'detalles.accesorios.producto.collarin',
+            'detalles.accesorios.producto.capa',
             'historial',
             'danos.producto',
             'fabricaciones.producto',

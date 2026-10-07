@@ -394,50 +394,11 @@
 
                         <tbody>
                             @forelse($alquiler->detalles as $detalle)
-                                @php
-                                    $producto = $detalle->producto;
-                                    $talla = $producto?->toga?->talla ?? 'N/A';
-
-                                    $accesoriosDetalle = collect($detalle->accesorios ?? []);
-
-                                    $birretes = $accesoriosDetalle->filter(function ($accesorio) {
-                                        return ($accesorio->producto->tipo_producto ?? null) === 'BIRRETE';
-                                    });
-
-                                    $birretesTexto = $birretes->map(function ($accesorio) {
-                                        $productoBirrete = $accesorio->producto;
-                                        $tipo = $productoBirrete?->birrete?->tipo ?? null;
-
-                                        if ($tipo === 'UNIVERSITARIO') {
-                                            return 'Universitario x' . $accesorio->cantidad;
-                                        }
-
-                                        return ($productoBirrete->nombre ?? 'Birrete') . ' x' . $accesorio->cantidad;
-                                    })->implode(', ');
-
-                                    $birreteUniversitario = $birretes->first(function ($accesorio) {
-                                        return ($accesorio->producto->birrete->tipo ?? null) === 'UNIVERSITARIO';
-                                    });
-
-                                    $tieneBirreteUniversitario = $birreteUniversitario !== null;
-
-                                    $carrera = $tieneBirreteUniversitario
-                                        ? ($birreteUniversitario->producto->birrete->carrera ?? null)
-                                        : null;
-
-                                    $borlas = $accesoriosDetalle->filter(function ($accesorio) {
-                                        return ($accesorio->producto->tipo_producto ?? null) === 'BORLA'
-                                            || str_contains(strtoupper($accesorio->producto->nombre ?? ''), 'BORLA');
-                                    });
-
-                                    $borlasTexto = $borlas->map(function ($accesorio) {
-                                        return ($accesorio->producto->nombre ?? 'Borla') . ' x' . $accesorio->cantidad;
-                                    })->implode(', ');
-                                @endphp
+                                @php $resumen = $detalle->resumenRapido(); @endphp
 
                                 <tr>
                                     <td>
-                                        <strong>{{ $talla }}</strong>
+                                        <strong>{{ $resumen['talla'] }}</strong>
                                     </td>
 
                                     <td class="text-center">
@@ -447,20 +408,20 @@
                                     </td>
 
                                     <td>
-                                        {{ $birretesTexto ?: 'Sin birrete' }}
+                                        {{ $resumen['birretes'] ?: 'Sin birrete' }}
                                     </td>
 
                                     <td>
-                                        @if($tieneBirreteUniversitario)
-                                            {{ $borlasTexto ?: 'Incluida / no detallada' }}
+                                        @if($resumen['borlas'])
+                                            {{ $resumen['borlas'] }}
                                         @else
-                                            <span class="text-muted">-</span>
+                                            <span class="text-muted">Sin borla</span>
                                         @endif
                                     </td>
 
                                     <td>
-                                        @if($tieneBirreteUniversitario)
-                                            {{ $carrera ?: 'No registrada' }}
+                                        @if($resumen['carrera'])
+                                            {{ $resumen['carrera'] }}
                                         @else
                                             <span class="text-muted">-</span>
                                         @endif
