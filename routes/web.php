@@ -7,6 +7,7 @@ use App\Http\Controllers\EstadisticasController;
 use App\Http\Controllers\ExportacionController;
 use App\Http\Controllers\Auth\ConfiguracionInicialController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Web\ActividadController;
 use App\Http\Controllers\Web\AlquilerController;
 use App\Http\Controllers\Web\AlquilerDocumentoController;
 use App\Http\Controllers\Web\ClienteController;
@@ -149,7 +150,16 @@ Route::middleware(['auth', 'usuario.activo'])->group(function () {
 
     // - - - - CONTROL Y ESTADÍSTICAS - - - -
 
-    Route::get('/control-alquileres', [ControlAlquilerController::class, 'index'])
+    // - - - - ACTIVIDADES (agenda, togas por talla, cobros, bitácora) - - - -
+
+    Route::get('/actividades', [ActividadController::class, 'agenda'])->name('actividades.agenda');
+    Route::get('/actividades/agenda/pdf', [ActividadController::class, 'agendaPdf'])->name('actividades.agenda.pdf');
+    Route::get('/actividades/togas-por-talla', [ActividadController::class, 'inventario'])->name('actividades.inventario');
+    Route::get('/actividades/por-cobrar', [ActividadController::class, 'cobros'])->name('actividades.cobros');
+    Route::get('/actividades/bitacora', [ActividadController::class, 'bitacora'])->name('actividades.bitacora');
+
+    // La antigua pantalla "Control de alquileres" ahora es parte de Actividades.
+    Route::get('/control-alquileres', ControlAlquilerController::class)
         ->name('control-alquileres.index');
 
     Route::get('/estadisticas', [EstadisticasController::class, 'index'])

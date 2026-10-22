@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\RegistroDeActividad;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -64,11 +65,15 @@ class LoginController extends Controller
         RateLimiter::clear($clave);
         $request->session()->regenerate();
 
+        RegistroDeActividad::anotar('SESION', 'Inició sesión', 'Entró al sistema.');
+
         return redirect()->intended(route('dashboard'));
     }
 
     public function cerrar(Request $request): RedirectResponse
     {
+        RegistroDeActividad::anotar('SESION', 'Cerró sesión', 'Salió del sistema.');
+
         Auth::logout();
 
         $request->session()->invalidate();

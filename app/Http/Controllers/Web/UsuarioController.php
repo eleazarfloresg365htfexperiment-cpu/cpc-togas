@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UsuarioRequest;
 use App\Models\User;
+use App\Support\RegistroDeActividad;
 use Illuminate\Http\RedirectResponse;
 
 /**
@@ -34,6 +35,8 @@ class UsuarioController extends Controller
     {
         $usuario = User::create($request->datosParaGuardar() + ['activo' => true]);
 
+        RegistroDeActividad::anotar('USUARIO', 'Creó un usuario', "Usuario {$usuario->usuario} ({$usuario->nombre_completo}).");
+
         return redirect()
             ->route('usuarios.index')
             ->with('success', "Usuario {$usuario->usuario} creado correctamente.");
@@ -47,6 +50,12 @@ class UsuarioController extends Controller
     public function update(UsuarioRequest $request, User $usuario): RedirectResponse
     {
         $usuario->update($request->datosParaGuardar());
+
+        RegistroDeActividad::anotar(
+            'USUARIO',
+            'Editó un usuario',
+            "Usuario {$usuario->usuario} ({$usuario->nombre_completo})" . ($request->filled('password') ? '; cambió la contraseña.' : '.')
+        );
 
         return redirect()
             ->route('usuarios.index')
@@ -65,12 +74,16 @@ class UsuarioController extends Controller
 
         $usuario->update(['activo' => false]);
 
+        RegistroDeActividad::anotar('USUARIO', 'Desactivó un usuario', "Usuario {$usuario->usuario} ({$usuario->nombre_completo}).");
+
         return back()->with('success', 'Usuario desactivado. Ya no podrá iniciar sesión.');
     }
 
     public function reactivar(User $usuario): RedirectResponse
     {
         $usuario->update(['activo' => true]);
+
+        RegistroDeActividad::anotar('USUARIO', 'Reactivó un usuario', "Usuario {$usuario->usuario} ({$usuario->nombre_completo}).");
 
         return back()->with('success', 'Usuario reactivado.');
     }

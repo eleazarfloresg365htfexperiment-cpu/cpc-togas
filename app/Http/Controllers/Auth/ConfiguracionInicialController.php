@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UsuarioRequest;
 use App\Models\User;
+use App\Support\RegistroDeActividad;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 
@@ -31,6 +32,8 @@ class ConfiguracionInicialController extends Controller
 
         Auth::login($usuario);
         $request->session()->regenerate();
+
+        RegistroDeActividad::anotar('USUARIO', 'Creó el primer usuario', "Usuario {$usuario->usuario} ({$usuario->nombre_completo}).");
 
         return redirect()
             ->route('dashboard')

@@ -26,6 +26,11 @@ abstract class PruebaWeb extends TestCase
         // Las pruebas no necesitan los archivos compilados de Vite.
         $this->withoutVite();
 
+        // Los datos de prueba usan fechas de octubre de 2026: se fija "hoy"
+        // para que el resultado no cambie según el día en que se corran
+        // (por ejemplo, que una devolución del 15 no cuente como atrasada).
+        $this->travelTo(now()->setDate(2026, 10, 8)->setTime(10, 0));
+
         // Las pantallas requieren sesión: cada prueba entra con un usuario.
         $this->usuario = User::create([
             'usuario' => 'prueba',

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\ProductoRequest;
 use App\Models\Producto;
 use App\Services\ProductoService;
+use App\Support\RegistroDeActividad;
 use DomainException;
 use Illuminate\Http\Request;
 
@@ -64,7 +65,9 @@ class ProductoController extends Controller
 
     public function store(ProductoRequest $request, ProductoService $productos)
     {
-        $productos->crear($request->validated(), auth()->id());
+        $producto = $productos->crear($request->validated(), auth()->id());
+
+        RegistroDeActividad::anotar('PRODUCTO', 'Registró un producto', "{$producto->codigo} – {$producto->nombre} (stock inicial {$producto->stock_total}).");
 
         return redirect()
             ->route('productos.index')
@@ -125,6 +128,8 @@ class ProductoController extends Controller
                 ->withErrors(['stock_total' => $e->getMessage()]);
         }
 
+        RegistroDeActividad::anotar('PRODUCTO', 'Editó un producto', "{$producto->codigo} – {$producto->nombre}.");
+
         return redirect()
             ->route('productos.index')
             ->with('success', 'Producto actualizado correctamente.');
@@ -134,6 +139,8 @@ class ProductoController extends Controller
     {
         $producto->update(['activo' => false]);
 
+        RegistroDeActividad::anotar('PRODUCTO', 'Desactivó un producto', "{$producto->codigo} – {$producto->nombre}.");
+
         return redirect()
             ->route('productos.index')
             ->with('success', 'Producto desactivado correctamente.');
@@ -142,6 +149,8 @@ class ProductoController extends Controller
     public function reactivar(Producto $producto)
     {
         $producto->update(['activo' => true]);
+
+        RegistroDeActividad::anotar('PRODUCTO', 'Reactivó un producto', "{$producto->codigo} – {$producto->nombre}.");
 
         return redirect()
             ->route('productos.index')

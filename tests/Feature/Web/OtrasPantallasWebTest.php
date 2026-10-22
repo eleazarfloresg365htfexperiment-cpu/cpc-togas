@@ -36,12 +36,10 @@ class OtrasPantallasWebTest extends PruebaWeb
         $this->get('/dashboard')->assertOk()->assertSee('Q');
     }
 
-    public function test_control_de_alquileres(): void
+    public function test_control_de_alquileres_ahora_lleva_a_actividades(): void
     {
-        $this->get(route('control-alquileres.index'))->assertOk();
-
-        $alquiler = $this->conDatos();
-        $this->get(route('control-alquileres.index'))->assertOk()->assertSee($alquiler->codigo_recibo);
+        $this->get(route('control-alquileres.index'))->assertRedirect(route('actividades.agenda'));
+        $this->get(route('control-alquileres.index', ['filtro' => 'pendientes_pago']))->assertRedirect(route('actividades.cobros'));
     }
 
     public function test_calendario_y_sus_eventos(): void

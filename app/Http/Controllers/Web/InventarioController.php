@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\MovimientoInventario;
 use App\Models\Producto;
 use App\Services\InventarioService;
+use App\Support\RegistroDeActividad;
 use Illuminate\Http\Request;
 
 class InventarioController extends Controller
@@ -82,6 +83,12 @@ class InventarioController extends Controller
                 usuarioId: auth()->id()
             );
 
+            RegistroDeActividad::anotar(
+                'INVENTARIO',
+                'Registró una entrada',
+                "+{$request->cantidad} de {$producto->codigo} – {$producto->nombre}. Motivo: {$request->motivo}"
+            );
+
             return redirect()
                 ->route('productos.index')
                 ->with('success', 'Entrada de inventario registrada correctamente.');
@@ -112,6 +119,12 @@ class InventarioController extends Controller
                 motivo: $request->motivo,
                 referencia: $request->referencia,
                 usuarioId: auth()->id()
+            );
+
+            RegistroDeActividad::anotar(
+                'INVENTARIO',
+                'Ajustó el inventario',
+                "{$producto->codigo} – {$producto->nombre}: disponible {$producto->stock_disponible} → {$request->nuevo_stock_disponible}. Motivo: {$request->motivo}"
             );
 
             return redirect()

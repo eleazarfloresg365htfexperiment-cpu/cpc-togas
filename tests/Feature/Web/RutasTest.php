@@ -48,7 +48,10 @@ class RutasTest extends PruebaWeb
             '/alquileres',
             '/alquileres/crear',
             '/calendario',
-            '/control-alquileres',
+            '/actividades',
+            '/actividades/togas-por-talla',
+            '/actividades/por-cobrar',
+            '/actividades/bitacora',
             '/estadisticas',
         ] as $ruta) {
             $this->get($ruta)->assertOk();

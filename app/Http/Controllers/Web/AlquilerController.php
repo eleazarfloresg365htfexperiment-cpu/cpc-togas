@@ -8,6 +8,7 @@ use App\Models\Alquiler;
 use App\Models\Cliente;
 use App\Models\Producto;
 use App\Services\AlquilerService;
+use App\Support\RegistroDeActividad;
 use Illuminate\Http\Request;
 
 class AlquilerController extends Controller
@@ -138,6 +139,14 @@ class AlquilerController extends Controller
                 'fecha_limite_pago_final' => $datos['fecha_limite_pago_final'] ?? null,
             ]);
 
+            $togas = $alquiler->detalles()->sum('cantidad');
+            RegistroDeActividad::anotar(
+                'ALQUILER',
+                'Creó un alquiler',
+                RegistroDeActividad::alquiler($alquiler) . " – {$togas} toga(s), entrega " . optional($alquiler->fecha_entrega)->format('d/m/Y') . ", total Q" . number_format((float) $alquiler->total, 2) . '.',
+                $alquiler
+            );
+
             return redirect()
                 ->route('alquileres.index')
                 ->with('success', 'Alquiler creado correctamente.');
@@ -175,7 +184,9 @@ class AlquilerController extends Controller
     public function entregar(Alquiler $alquiler, AlquilerService $alquileres)
     {
         try {
-            $alquileres->entregarAlquiler($alquiler->id, null);
+            $alquileres->entregarAlquiler($alquiler->id, auth()->id());
+
+            RegistroDeActividad::anotar('ALQUILER', 'Entregó un alquiler', RegistroDeActividad::alquiler($alquiler) . '.', $alquiler);
 
             return redirect()
                 ->route('alquileres.index')
@@ -199,8 +210,10 @@ class AlquilerController extends Controller
                 $alquiler->id,
                 (float) $request->input('descuento_mora', 0),
                 $request->input('observacion_mora'),
-                null
+                auth()->id()
             );
+
+            RegistroDeActividad::anotar('ALQUILER', 'Recibió una devolución', RegistroDeActividad::alquiler($alquiler) . '.', $alquiler);
 
             return redirect()
                 ->back()
@@ -228,6 +241,13 @@ class AlquilerController extends Controller
                 $request->input('motivo_cancelacion'),
                 $request->input('responsable'),
                 auth()->id()
+            );
+
+            RegistroDeActividad::anotar(
+                'ALQUILER',
+                'Canceló un alquiler',
+                RegistroDeActividad::alquiler($alquiler) . '. Motivo: ' . $request->input('motivo_cancelacion'),
+                $alquiler
             );
 
             $mensaje = 'Alquiler cancelado correctamente.';
@@ -298,6 +318,13 @@ class AlquilerController extends Controller
                 $datos['motivo_cambio'],
                 $datos['responsable'] ?? null,
                 auth()->id()
+            );
+
+            RegistroDeActividad::anotar(
+                'ALQUILER',
+                'Editó un alquiler',
+                RegistroDeActividad::alquiler($alquiler) . '. Motivo: ' . $datos['motivo_cambio'],
+                $alquiler
             );
 
             return redirect()

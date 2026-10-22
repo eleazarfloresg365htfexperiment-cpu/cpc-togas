@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\Alquiler;
 use App\Services\AlquilerService;
+use App\Support\RegistroDeActividad;
 use Illuminate\Http\Request;
 
 /**
@@ -40,6 +41,13 @@ class DanoController extends Controller
                 usuarioId: auth()->id()
             );
 
+            RegistroDeActividad::anotar(
+                'ALQUILER',
+                'Registró ' . ($dano->tipo === 'EXTRAVIO' ? 'un extravío' : 'un daño'),
+                RegistroDeActividad::alquiler($alquiler) . " – {$dano->cantidad} unidad(es), Q" . number_format((float) $dano->monto, 2) . '.',
+                $alquiler
+            );
+
             $mensaje = $dano->tipo_texto . ' registrado correctamente.';
 
             if ((float) $dano->monto > 0) {
@@ -73,6 +81,13 @@ class DanoController extends Controller
                 $request->input('motivo_eliminacion'),
                 $request->input('responsable'),
                 auth()->id()
+            );
+
+            RegistroDeActividad::anotar(
+                'ALQUILER',
+                'Eliminó un daño o extravío',
+                RegistroDeActividad::alquiler($alquiler) . '. Motivo: ' . $request->input('motivo_eliminacion'),
+                $alquiler
             );
 
             return redirect()

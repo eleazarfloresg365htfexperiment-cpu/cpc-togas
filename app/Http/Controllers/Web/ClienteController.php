@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ClienteRequest;
 use App\Models\Cliente;
+use App\Support\RegistroDeActividad;
 use Illuminate\Http\Request;
 
 class ClienteController extends Controller
@@ -63,7 +64,9 @@ class ClienteController extends Controller
 
     public function store(ClienteRequest $request)
     {
-        Cliente::create($request->validated() + ['activo' => true]);
+        $cliente = Cliente::create($request->validated() + ['activo' => true]);
+
+        RegistroDeActividad::anotar('CLIENTE', 'Registró un cliente', "{$cliente->nombres} {$cliente->apellidos}.");
 
         return redirect()
             ->route('clientes.index')
@@ -79,6 +82,8 @@ class ClienteController extends Controller
     {
         $cliente->update($request->validated());
 
+        RegistroDeActividad::anotar('CLIENTE', 'Editó un cliente', "{$cliente->nombres} {$cliente->apellidos}.");
+
         return redirect()
             ->route('clientes.index')
             ->with('success', 'Cliente actualizado correctamente.');
@@ -88,6 +93,8 @@ class ClienteController extends Controller
     {
         $cliente->update(['activo' => false]);
 
+        RegistroDeActividad::anotar('CLIENTE', 'Desactivó un cliente', "{$cliente->nombres} {$cliente->apellidos}.");
+
         return redirect()
             ->route('clientes.index')
             ->with('success', 'Cliente desactivado correctamente.');
@@ -96,6 +103,8 @@ class ClienteController extends Controller
     public function reactivar(Cliente $cliente)
     {
         $cliente->update(['activo' => true]);
+
+        RegistroDeActividad::anotar('CLIENTE', 'Reactivó un cliente', "{$cliente->nombres} {$cliente->apellidos}.");
 
         return redirect()
             ->route('clientes.index')

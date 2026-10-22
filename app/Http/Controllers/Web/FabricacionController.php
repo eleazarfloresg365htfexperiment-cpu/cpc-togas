@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\Alquiler;
 use App\Services\FabricacionService;
+use App\Support\RegistroDeActividad;
 use Illuminate\Http\Request;
 
 class FabricacionController extends Controller
@@ -34,6 +35,13 @@ class FabricacionController extends Controller
 
             $mensaje = 'Fabricación registrada: ' . (int) $datos['cantidad_completada'] .
                 ' unidad(es) de "' . ($fabricacion->producto->nombre ?? 'producto') . '" agregadas al inventario.';
+
+            RegistroDeActividad::anotar(
+                'INVENTARIO',
+                'Registró una fabricación',
+                (int) $datos['cantidad_completada'] . ' de "' . ($fabricacion->producto->nombre ?? 'producto') . '" para ' . RegistroDeActividad::alquiler($alquiler) . '.',
+                $alquiler
+            );
 
             if ($alquiler->fresh()->estado === 'LISTO_PARA_ENTREGA') {
                 $mensaje .= ' Ya no queda nada pendiente: el alquiler está LISTO PARA ENTREGA.';

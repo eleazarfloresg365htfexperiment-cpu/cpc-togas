@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\RegistrarPagoRequest;
 use App\Models\Alquiler;
 use App\Services\PagoService;
+use App\Support\RegistroDeActividad;
 use Illuminate\Support\Facades\DB;
 
 class PagoController extends Controller
@@ -52,6 +53,20 @@ class PagoController extends Controller
                 usuarioId: auth()->id(),
                 descuentoAplicado: $descuentoAplicado,
                 observacionDescuento: $datos['observacion_descuento'] ?? null
+            );
+
+            $detallePago = [];
+            if ($monto > 0) {
+                $detallePago[] = 'Q' . number_format($monto, 2) . ' (' . mb_strtolower($datos['metodo_pago']) . ')';
+            }
+            if ($descuentoAplicado > 0) {
+                $detallePago[] = 'descuento Q' . number_format($descuentoAplicado, 2) . ': ' . $datos['observacion_descuento'];
+            }
+            RegistroDeActividad::anotar(
+                'PAGO',
+                $monto > 0 ? 'Registró un pago' : 'Aplicó un descuento',
+                RegistroDeActividad::alquiler($alquiler) . ' – ' . implode('; ', $detallePago) . '.',
+                $alquiler
             );
 
             // El formulario puede enviar la fecha límite con distintos nombres.

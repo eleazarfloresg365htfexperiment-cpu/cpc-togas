@@ -454,8 +454,8 @@
                         🧾 Alquileres
                     </a>
 
-                    <a class="nav-link {{ request()->routeIs('control-alquileres.*') ? 'active' : '' }}" href="{{ route('control-alquileres.index') }}">
-                        📦 Control de alquileres
+                    <a class="nav-link {{ request()->routeIs('actividades.*') ? 'active' : '' }}" href="{{ route('actividades.agenda') }}">
+                        📋 Actividades
                     </a>
 
                     <a href="{{ route('estadisticas.index') }}"
