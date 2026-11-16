@@ -90,7 +90,7 @@ trait CreaDatos
         return $producto->load('capa');
     }
 
-    protected function birrete(string $tipo = 'ESTANDAR', array $atributos = []): Producto
+    protected function birrete(string $tipo = 'NORMAL', array $atributos = []): Producto
     {
         $producto = $this->producto('BIRRETE', $atributos);
 

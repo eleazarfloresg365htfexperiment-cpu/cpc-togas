@@ -157,8 +157,6 @@
                             <input type="hidden" name="{{ $key }}" value="{{ $value }}">
                         @endforeach
 
-                        <input type="hidden" name="grafico_alquileres" id="graficoAlquileresImagen">
-                        <input type="hidden" name="grafico_financiero" id="graficoFinancieroImagen">
 
                         <button type="button"
                                 id="btnExportarPdf"
@@ -588,6 +586,42 @@
                 </div>
             </div>
 
+            <div class="col-12">
+                <div class="ranking-card h-100 p-3">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h3 class="h6 mb-1">Top 5 clientes que más togas alquilaron</h3>
+                            <p class="small text-muted mb-0">Toca un nombre para ver su historial completo.</p>
+                        </div>
+                        <div class="stats-icon">👥</div>
+                    </div>
+
+                    @forelse ($topClientes as $index => $cliente)
+                        <div class="ranking-row d-flex align-items-center gap-3">
+                            <div class="ranking-number">{{ $index + 1 }}</div>
+
+                            <div class="flex-grow-1">
+                                <a href="{{ route('clientes.show', $cliente->id) }}" class="fw-semibold text-decoration-none">
+                                    {{ $cliente->nombres }} {{ $cliente->apellidos }}
+                                </a>
+                                <div class="small text-muted">
+                                    {{ $cliente->institucion_representada ?: 'Individual' }}
+                                    · {{ $cliente->alquileres }} alquiler(es)
+                                </div>
+                            </div>
+
+                            <div class="ranking-mini-value">
+                                {{ number_format($cliente->total) }} <span class="small fw-normal text-muted">togas</span>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="text-center text-muted py-4">
+                            No hay togas alquiladas en este periodo.
+                        </div>
+                    @endforelse
+                </div>
+            </div>
+
         </div>
     </div>
 
@@ -668,6 +702,42 @@
 
     const hayDatos = labels.length > 0;
 
+    /*
+    | Escribe el valor encima de cada barra, para que la gráfica se entienda
+    | sin pasar el cursor (y al imprimir la pantalla).
+    */
+    const etiquetasDeValor = {
+        id: 'etiquetasDeValor',
+        afterDatasetsDraw(chart, args, opciones) {
+            const ctx = chart.ctx;
+            const formato = opciones.formato || ((valor) => String(valor));
+
+            ctx.save();
+            ctx.font = '600 11px "Segoe UI", Arial, sans-serif';
+            ctx.fillStyle = '#374151';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+
+            chart.data.datasets.forEach((dataset, indice) => {
+                const meta = chart.getDatasetMeta(indice);
+
+                if (meta.hidden) {
+                    return;
+                }
+
+                meta.data.forEach((barra, posicion) => {
+                    const valor = Number(dataset.data[posicion] ?? 0);
+
+                    if (valor > 0) {
+                        ctx.fillText(formato(valor), barra.x, barra.y - 4);
+                    }
+                });
+            });
+
+            ctx.restore();
+        }
+    };
+
     if (hayDatos) {
         new Chart(document.getElementById('graficoAlquileres'), {
             type: 'bar',
@@ -687,10 +757,18 @@
                 ]
             },
 
+            plugins: [etiquetasDeValor],
+
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                layout: {
+                    padding: { top: 22 }
+                },
                 plugins: {
+                    etiquetasDeValor: {
+                        formato: (valor) => String(valor)
+                    },
                     legend: {
                         display: true
                     },
@@ -742,14 +820,22 @@
                 ]
             },
 
+            plugins: [etiquetasDeValor],
+
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                layout: {
+                    padding: { top: 22 }
+                },
                 interaction: {
                     mode: 'index',
                     intersect: false
                 },
                 plugins: {
+                    etiquetasDeValor: {
+                        formato: (valor) => 'Q' + Math.round(valor).toLocaleString('es-GT')
+                    },
                     legend: {
                         display: true
                     },
@@ -816,17 +902,6 @@
 
     if (btnExportarPdf) {
         btnExportarPdf.addEventListener('click', function () {
-            const canvasAlquileres = document.getElementById('graficoAlquileres');
-            const canvasFinanciero = document.getElementById('graficoFinanciero');
-
-            if (canvasAlquileres && canvasFinanciero && hayDatos) {
-                document.getElementById('graficoAlquileresImagen').value =
-                    canvasAlquileres.toDataURL('image/png');
-
-                document.getElementById('graficoFinancieroImagen').value =
-                    canvasFinanciero.toDataURL('image/png');
-            }
-
             document.getElementById('formExportarPdf').submit();
         });
     }

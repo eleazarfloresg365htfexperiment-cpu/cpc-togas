@@ -130,6 +130,7 @@ class EstadisticasController extends Controller
         $institucionMasAlquileres = $this->institucionMasAlquileres($fechaInicio, $fechaFin);
         $topProductos = $this->topProductos($fechaInicio, $fechaFin);
         $topTallasToga = $this->topTallasToga($fechaInicio, $fechaFin);
+        $topClientes = $this->topClientes($fechaInicio, $fechaFin);
 
         return view('estadisticas.index', compact(
             'tipoVista',
@@ -165,6 +166,7 @@ class EstadisticasController extends Controller
             'institucionMasAlquileres',
             'topProductos',
             'topTallasToga',
+            'topClientes',
         ));
     }
 
@@ -362,23 +364,39 @@ class EstadisticasController extends Controller
             ->get();
     }
 
+    /**
+     * Clientes que más togas alquilaron en el periodo (sin cancelados).
+     */
+    private function topClientes($inicio, $fin)
+    {
+        return DB::table('alquiler_detalles')
+            ->join('productos', 'productos.id', '=', 'alquiler_detalles.producto_id')
+            ->join('alquileres', 'alquileres.id', '=', 'alquiler_detalles.alquiler_id')
+            ->join('clientes', 'clientes.id', '=', 'alquileres.cliente_id')
+            ->where('productos.tipo_producto', 'TOGA')
+            ->whereBetween('alquileres.fecha_alquiler', [$inicio->toDateString(), $fin->toDateString()])
+            ->where('alquileres.estado', '!=', 'CANCELADO')
+            ->selectRaw('
+                clientes.id,
+                clientes.nombres,
+                clientes.apellidos,
+                clientes.institucion_representada,
+                SUM(alquiler_detalles.cantidad) as total,
+                COUNT(DISTINCT alquileres.id) as alquileres
+            ')
+            ->groupBy('clientes.id', 'clientes.nombres', 'clientes.apellidos', 'clientes.institucion_representada')
+            ->orderByDesc('total')
+            ->orderBy('clientes.nombres')
+            ->limit(5)
+            ->get();
+    }
+
     public function exportarPdf(Request $request)
     {
         $datos = $this->obtenerDatosExportacion($request);
 
-        // Solo se aceptan imágenes PNG/JPEG en base64 generadas por los gráficos.
-        // Cualquier otro valor (rutas, file://, URLs) se descarta antes de llegar a dompdf.
-        $imagenSegura = function ($valor) {
-            return is_string($valor)
-                && strlen($valor) <= 5 * 1024 * 1024
-                && preg_match('#^data:image/(png|jpeg);base64,[A-Za-z0-9+/=]+$#', $valor)
-                ? $valor
-                : null;
-        };
-
-        $datos['graficoAlquileresImagen'] = $imagenSegura($request->input('grafico_alquileres'));
-        $datos['graficoFinancieroImagen'] = $imagenSegura($request->input('grafico_financiero'));
-
+        // Las gráficas del PDF se dibujan en el servidor (estadisticas/partials/pdf-barras),
+        // con el valor escrito en cada barra: no dependen del navegador.
         $nombreArchivo = 'estadisticas_' . now()->format('Ymd_His') . '.pdf';
 
         $pdf = Pdf::loadView('estadisticas.pdf', $datos)
@@ -418,6 +436,7 @@ class EstadisticasController extends Controller
         $zip->addFromString('xl/worksheets/sheet3.xml', $this->xlsxHojaRankings($datos));
         $zip->addFromString('xl/worksheets/sheet4.xml', $this->xlsxHojaProductos($datos));
         $zip->addFromString('xl/worksheets/sheet5.xml', $this->xlsxHojaTallas($datos));
+        $zip->addFromString('xl/worksheets/sheet6.xml', $this->xlsxHojaClientes($datos));
 
         $zip->close();
     }
@@ -443,6 +462,7 @@ class EstadisticasController extends Controller
         <Override PartName="/xl/worksheets/sheet3.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
         <Override PartName="/xl/worksheets/sheet4.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
         <Override PartName="/xl/worksheets/sheet5.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+        <Override PartName="/xl/worksheets/sheet6.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
     </Types>';
     }
 
@@ -457,6 +477,7 @@ class EstadisticasController extends Controller
             <sheet name="Rankings" sheetId="3" r:id="rId3"/>
             <sheet name="Productos" sheetId="4" r:id="rId4"/>
             <sheet name="Tallas" sheetId="5" r:id="rId5"/>
+            <sheet name="Clientes" sheetId="6" r:id="rId6"/>
         </sheets>
     </workbook>';
     }
@@ -470,7 +491,8 @@ class EstadisticasController extends Controller
         <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet3.xml"/>
         <Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet4.xml"/>
         <Relationship Id="rId5" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet5.xml"/>
-        <Relationship Id="rId6" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+        <Relationship Id="rId6" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet6.xml"/>
+        <Relationship Id="rId7" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
     </Relationships>';
     }
 
@@ -838,6 +860,37 @@ class EstadisticasController extends Controller
             ['A1:D1', 'A2:D2']
         );
     }
+    private function xlsxHojaClientes(array $datos): string
+    {
+        $filas = [
+            [1, 'Clientes que más togas alquilaron', '', '', ''],
+            [6, $datos['tituloPeriodo'], '', '', ''],
+            [],
+            [2, 'Posición', 'Cliente', 'Institución', 'Togas', 'Alquileres'],
+        ];
+
+        foreach ($datos['topClientes'] as $index => $cliente) {
+            $filas[] = [
+                9,
+                $index + 1,
+                trim($cliente->nombres . ' ' . $cliente->apellidos),
+                $cliente->institucion_representada ?: 'Individual',
+                $cliente->total,
+                $cliente->alquileres,
+            ];
+        }
+
+        if ($datos['topClientes']->count() === 0) {
+            $filas[] = [9, '-', 'Sin datos', '', 0, 0];
+        }
+
+        return $this->crearWorksheetXml(
+            $filas,
+            [1 => 14, 2 => 38, 3 => 32, 4 => 12, 5 => 14],
+            ['A1:E1', 'A2:E2']
+        );
+    }
+
     private function crearWorksheetXml(array $filas, array $anchos = [], array $mergedCells = []): string
     {
         $xml = '<?xml version="1.0" encoding="UTF-8"?>
@@ -1078,6 +1131,7 @@ class EstadisticasController extends Controller
             'institucionMasAlquileres' => $this->institucionMasAlquileres($fechaInicio, $fechaFin),
             'topProductos' => $this->topProductos($fechaInicio, $fechaFin),
             'topTallasToga' => $this->topTallasToga($fechaInicio, $fechaFin),
+            'topClientes' => $this->topClientes($fechaInicio, $fechaFin),
         ];
     }
 

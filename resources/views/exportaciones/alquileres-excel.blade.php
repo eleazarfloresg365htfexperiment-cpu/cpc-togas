@@ -66,13 +66,13 @@
 
 <table>
     <tr>
-        <td colspan="17" class="titulo">
+        <td colspan="19" class="titulo">
             REPORTE DE ALQUILERES - CENTRO PROFESIONAL DE CÓMPUTO CPC
         </td>
     </tr>
 
     <tr>
-        <td colspan="17" class="subtitulo">
+        <td colspan="19" class="subtitulo">
             Generado el {{ $fechaGeneracion->format('d/m/Y H:i') }}
         </td>
     </tr>
@@ -81,6 +81,8 @@
         <th>ID</th>
         <th>Recibo</th>
         <th>Cliente</th>
+        <th>Togas alquiladas</th>
+        <th>Tallas</th>
         <th>Teléfono</th>
         <th>DPI</th>
         <th>Fecha alquiler</th>
@@ -101,6 +103,7 @@
         $totalGeneral = 0;
         $totalPagado = 0;
         $totalSaldo = 0;
+        $totalTogas = 0;
     @endphp
 
     @foreach($alquileres as $alquiler)
@@ -111,12 +114,18 @@
             $totalGeneral += $alquiler->total;
             $totalPagado += $pagado;
             $totalSaldo += $saldo;
+
+            // Los cancelados muestran sus togas, pero no suman al total.
+            $togas = $alquiler->totalTogas();
+            $totalTogas += $alquiler->estado === 'CANCELADO' ? 0 : $togas;
         @endphp
 
         <tr>
             <td class="text-center">{{ $alquiler->id }}</td>
             <td>{{ $alquiler->codigo_recibo }}</td>
             <td>{{ $alquiler->cliente->nombres ?? '' }} {{ $alquiler->cliente->apellidos ?? '' }}</td>
+            <td class="text-center">{{ $togas }}</td>
+            <td>{{ $alquiler->tallasTexto() }}</td>
             <td>{{ $alquiler->cliente->telefono ?? '' }}</td>
             <td>{{ $alquiler->cliente->dpi ?? '' }}</td>
             <td class="text-center">{{ optional($alquiler->fecha_alquiler)->format('d/m/Y') }}</td>
@@ -137,11 +146,44 @@
     @endforeach
 
     <tr class="total-row">
-        <td colspan="13" class="text-right">TOTALES</td>
+        <td colspan="3" class="text-right">TOTALES</td>
+        <td class="text-center">{{ $totalTogas }}</td>
+        <td colspan="11"></td>
         <td class="text-right">Q {{ number_format($totalGeneral, 2) }}</td>
         <td class="text-right">Q {{ number_format($totalPagado, 2) }}</td>
         <td class="text-right">Q {{ number_format($totalSaldo, 2) }}</td>
         <td></td>
+    </tr>
+
+    {{-- Resumen: togas alquiladas por talla --}}
+    <tr><td colspan="19" style="border: none;"></td></tr>
+    <tr>
+        <td colspan="4" class="titulo">TOGAS ALQUILADAS POR TALLA</td>
+    </tr>
+    <tr>
+        <td colspan="4" class="subtitulo">No incluye alquileres cancelados</td>
+    </tr>
+    <tr>
+        <th>Talla</th>
+        <th>Estándar</th>
+        <th>Universitaria</th>
+        <th>Total</th>
+    </tr>
+    @forelse($togasPorTalla as $talla => $cantidades)
+        <tr>
+            <td class="text-center"><strong>Talla {{ $talla }}</strong></td>
+            <td class="text-center">{{ $cantidades['ESTANDAR'] }}</td>
+            <td class="text-center">{{ $cantidades['UNIVERSITARIA'] }}</td>
+            <td class="text-center"><strong>{{ $cantidades['total'] }}</strong></td>
+        </tr>
+    @empty
+        <tr><td colspan="4" class="text-center">Sin togas</td></tr>
+    @endforelse
+    <tr class="total-row">
+        <td class="text-center">Total</td>
+        <td class="text-center">{{ collect($togasPorTalla)->sum('ESTANDAR') }}</td>
+        <td class="text-center">{{ collect($togasPorTalla)->sum('UNIVERSITARIA') }}</td>
+        <td class="text-center">{{ collect($togasPorTalla)->sum('total') }}</td>
     </tr>
 </table>
 

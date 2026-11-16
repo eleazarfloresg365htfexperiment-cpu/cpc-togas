@@ -168,4 +168,43 @@ class Alquiler extends Model
     {
         return $this->estado === 'LISTO_PARA_ENTREGA' || $this->estado === 'RESERVADO';
     }
+
+    /**
+     * Togas de este alquiler por talla y tipo:
+     * ['M' => ['ESTANDAR' => 3], 'XL' => ['UNIVERSITARIA' => 1]].
+     * Necesita cargada la relación detalles.producto.toga.
+     */
+    public function togasPorTalla(): array
+    {
+        $tallas = [];
+
+        foreach ($this->detalles as $detalle) {
+            $producto = $detalle->producto;
+
+            if (($producto->tipo_producto ?? null) !== 'TOGA') {
+                continue;
+            }
+
+            $talla = mb_strtoupper(trim((string) ($producto->toga->talla ?? ''))) ?: 'SIN TALLA';
+            $tipo = ($producto->toga->tipo_toga ?? 'ESTANDAR') === 'UNIVERSITARIA' ? 'UNIVERSITARIA' : 'ESTANDAR';
+
+            $tallas[$talla][$tipo] = ($tallas[$talla][$tipo] ?? 0) + (int) $detalle->cantidad;
+        }
+
+        return $tallas;
+    }
+
+    /** Cantidad total de togas de este alquiler. */
+    public function totalTogas(): int
+    {
+        return array_sum(array_map('array_sum', $this->togasPorTalla()));
+    }
+
+    /** Texto corto de tallas: "M×3, XL×1". */
+    public function tallasTexto(): string
+    {
+        return collect($this->togasPorTalla())
+            ->map(fn ($porTipo, $talla) => $talla . '×' . array_sum($porTipo))
+            ->implode(', ');
+    }
 }

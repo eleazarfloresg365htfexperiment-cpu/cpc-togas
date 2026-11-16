@@ -90,7 +90,7 @@ class ProductoRequest extends FormRequest
             'observaciones_capa' => ['nullable', 'string'],
 
             // BIRRETE
-            'tipo_birrete' => ['nullable', 'in:ESTANDAR,NORMAL,UNIVERSITARIO'],
+            'tipo_birrete' => ['nullable', 'in:NORMAL,UNIVERSITARIO'],
             'color_birrete' => ['nullable', 'string', 'max:50'],
             'observaciones_birrete' => ['nullable', 'string'],
 

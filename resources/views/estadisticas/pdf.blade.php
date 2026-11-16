@@ -130,16 +130,18 @@
             line-height: 1.45;
         }
 
-        .chart-img {
-            display: block;
-            width: 92%;
-            max-height: 360px;
-            object-fit: contain;
-            margin: 0 auto;
-            border: 1px solid #dbe3ef;
-            border-radius: 10px;
-            padding: 10px;
-        }
+        .barras { width: 100%; border-collapse: collapse; }
+        .barras td { border: none; border-bottom: 1px solid #eef0f4; padding: 5px 4px; vertical-align: top; }
+        .barras-etiqueta { width: 27%; font-weight: bold; font-size: 10px; padding-top: 6px !important; }
+        .barras-detalle { font-weight: normal; color: #6b7280; font-size: 9px; }
+        .barras-linea { width: 100%; border-collapse: collapse; }
+        .barras-linea td { border: none; padding: 1px 0; }
+        .barra { height: 11px; line-height: 11px; font-size: 1px; }
+        .barras-valor { padding-left: 5px !important; font-size: 9.5px; font-weight: bold; white-space: nowrap; }
+        .barras-leyenda { font-size: 9.5px; margin-bottom: 6px; }
+        .barras-leyenda-item { margin-right: 14px; }
+        .barras-cuadro { font-size: 7px; }
+        .barras-vacio { color: #6b7280; font-size: 10px; padding: 8px 0; }
 
         .page-break {
             page-break-before: always;
@@ -278,83 +280,74 @@
         </tbody>
     </table>
 
-    <h2>Top productos más alquilados</h2>
+    @php
+        $colorPrincipal = '#4f46e5';
+        $conMovimiento = collect($tablaResumen)->filter(
+            fn ($f) => $f['alquileres'] > 0 || $f['ingresos'] > 0 || $f['descuentos'] > 0 || $f['mora'] > 0
+        );
+    @endphp
 
-    <table>
-        <thead>
-            <tr>
-                <th>Producto</th>
-                <th>Tipo</th>
-                <th class="text-end">Cantidad</th>
-            </tr>
-        </thead>
-        <tbody>
-            @forelse ($topProductos as $producto)
-                <tr>
-                    <td>{{ $producto->nombre }}</td>
-                    <td>{{ $producto->tipo_producto }}</td>
-                    <td class="text-end">{{ number_format($producto->total) }}</td>
-                </tr>
-            @empty
-                <tr>
-                    <td colspan="3" class="text-center">No hay productos alquilados en este periodo.</td>
-                </tr>
-            @endforelse
-        </tbody>
-    </table>
+    <div class="page-break"></div>
 
-    <h2>Top tallas de toga</h2>
+    <h2>Gráficas del periodo</h2>
 
-    <table>
-        <thead>
-            <tr>
-                <th>Talla</th>
-                <th class="text-end">Cantidad</th>
-            </tr>
-        </thead>
-        <tbody>
-            @forelse ($topTallasToga as $talla)
-                <tr>
-                    <td>Talla {{ $talla->talla }}</td>
-                    <td class="text-end">{{ number_format($talla->total) }}</td>
-                </tr>
-            @empty
-                <tr>
-                    <td colspan="2" class="text-center">No hay togas alquiladas en este periodo.</td>
-                </tr>
-            @endforelse
-        </tbody>
-    </table>
+    @include('estadisticas.partials.pdf-barras', [
+        'titulo' => 'Alquileres por periodo',
+        'descripcion' => 'Cantidad de alquileres registrados. Solo se muestran los periodos con movimiento.',
+        'filas' => $conMovimiento->where('alquileres', '>', 0)->map(fn ($f) => [
+            'etiqueta' => $f['periodo'],
+            'series' => [['valor' => $f['alquileres'], 'texto' => number_format($f['alquileres']), 'color' => $colorPrincipal]],
+        ])->values()->all(),
+        'vacio' => 'No hay alquileres registrados en este periodo.',
+    ])
 
-    @if (!empty($graficoAlquileresImagen) || !empty($graficoFinancieroImagen))
-        <div class="page-break"></div>
+    @include('estadisticas.partials.pdf-barras', [
+        'titulo' => 'Resumen financiero por periodo',
+        'descripcion' => 'Ingresos reales recibidos, descuentos aplicados y mora generada. Los descuentos no son ingreso.',
+        'leyenda' => [
+            ['nombre' => 'Ingresos recibidos', 'color' => '#059669'],
+            ['nombre' => 'Descuentos aplicados', 'color' => '#d97706'],
+            ['nombre' => 'Mora generada', 'color' => '#dc2626'],
+        ],
+        'filas' => $conMovimiento->filter(fn ($f) => $f['ingresos'] > 0 || $f['descuentos'] > 0 || $f['mora'] > 0)->map(fn ($f) => [
+            'etiqueta' => $f['periodo'],
+            'series' => collect([
+                ['valor' => $f['ingresos'], 'texto' => 'Q' . number_format($f['ingresos'], 2), 'color' => '#059669'],
+                ['valor' => $f['descuentos'], 'texto' => 'Q' . number_format($f['descuentos'], 2), 'color' => '#d97706'],
+                ['valor' => $f['mora'], 'texto' => 'Q' . number_format($f['mora'], 2), 'color' => '#dc2626'],
+            ])->filter(fn ($serie) => $serie['valor'] > 0)->values()->all(),
+        ])->values()->all(),
+        'vacio' => 'No hay movimientos financieros en este periodo.',
+    ])
 
-        <h2>Gráficos del periodo</h2>
+    @include('estadisticas.partials.pdf-barras', [
+        'titulo' => 'Productos más alquilados',
+        'filas' => collect($topProductos)->map(fn ($p) => [
+            'etiqueta' => $p->nombre,
+            'detalle' => $p->tipo_producto,
+            'series' => [['valor' => $p->total, 'texto' => number_format($p->total), 'color' => $colorPrincipal]],
+        ])->all(),
+        'vacio' => 'No hay productos alquilados en este periodo.',
+    ])
 
-        @if (!empty($graficoAlquileresImagen))
-            <div class="chart-section">
-                <div class="chart-title">Alquileres por periodo</div>
-                <div class="chart-description">
-                    Este gráfico muestra la cantidad de alquileres registrados dentro del periodo seleccionado.
-                    Sirve para identificar los días o meses con mayor actividad operativa.
-                </div>
+    @include('estadisticas.partials.pdf-barras', [
+        'titulo' => 'Tallas de toga más alquiladas',
+        'filas' => collect($topTallasToga)->map(fn ($t) => [
+            'etiqueta' => 'Talla ' . $t->talla,
+            'series' => [['valor' => $t->total, 'texto' => number_format($t->total) . ' togas', 'color' => $colorPrincipal]],
+        ])->all(),
+        'vacio' => 'No hay togas alquiladas en este periodo.',
+    ])
 
-                <img src="{{ $graficoAlquileresImagen }}" class="chart-img" alt="Gráfico de alquileres por periodo">
-            </div>
-        @endif
-
-        @if (!empty($graficoFinancieroImagen))
-            <div class="chart-section">
-                <div class="chart-title">Resumen financiero</div>
-                <div class="chart-description">
-                    Este gráfico compara los ingresos reales recibidos, los descuentos aplicados y la mora generada.
-                    Los ingresos corresponden únicamente a dinero recibido mediante pagos registrados.
-                </div>
-
-                <img src="{{ $graficoFinancieroImagen }}" class="chart-img" alt="Gráfico financiero de ingresos, descuentos y mora">
-            </div>
-        @endif
-    @endif
+    @include('estadisticas.partials.pdf-barras', [
+        'titulo' => 'Clientes que más togas alquilaron',
+        'filas' => collect($topClientes)->map(fn ($c) => [
+            'etiqueta' => trim($c->nombres . ' ' . $c->apellidos),
+            'detalle' => ($c->institucion_representada ?: 'Individual') . ' · ' . $c->alquileres . ' alquiler(es)',
+            'series' => [['valor' => $c->total, 'texto' => number_format($c->total) . ' togas', 'color' => $colorPrincipal]],
+        ])->all(),
+        'vacio' => 'No hay togas alquiladas en este periodo.',
+    ])
 
     <div class="note">
         Los ingresos recibidos se calculan únicamente con pagos reales registrados.

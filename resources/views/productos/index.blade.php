@@ -214,6 +214,9 @@
                                     <span class="badge-soft badge-borla">
                                         BORLA
                                     </span>
+                                    <div class="small text-muted mt-1">
+                                        {{ ($producto->borla->tipo_borla ?? 'NORMAL') === 'UNIVERSITARIA' ? 'Universitaria' : 'Normal' }}
+                                    </div>
 
                                 @else
 

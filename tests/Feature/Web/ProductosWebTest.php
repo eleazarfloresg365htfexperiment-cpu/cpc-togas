@@ -168,6 +168,26 @@ class ProductosWebTest extends PruebaWeb
             ->assertSessionHasErrors(['tipo_birrete' => 'Debe seleccionar el tipo de birrete.']);
     }
 
+    public function test_birrete_ya_no_acepta_estandar(): void
+    {
+        $this->from(route('productos.create'))
+            ->post(route('productos.store'), $this->datosProducto('BIRRETE', ['tipo_birrete' => 'ESTANDAR']))
+            ->assertSessionHasErrors('tipo_birrete');
+
+        $this->assertSame(0, Producto::count());
+    }
+
+    public function test_el_listado_muestra_si_la_borla_es_normal_o_universitaria(): void
+    {
+        $this->borla('Rojo', ['nombre' => 'Borla roja normal']);
+        $this->borla('Rojo', ['nombre' => 'Borla roja universitaria'], 'UNIVERSITARIA');
+
+        $html = $this->get(route('productos.index', ['tipo' => 'BORLA']))->assertOk()->getContent();
+
+        $this->assertMatchesRegularExpression('/Borla roja normal.*?BORLA\s*<\/span>\s*<div[^>]*>\s*Normal/s', $html);
+        $this->assertMatchesRegularExpression('/Borla roja universitaria.*?BORLA\s*<\/span>\s*<div[^>]*>\s*Universitaria/s', $html);
+    }
+
     public function test_capa_exige_carrera_codigo_y_color_y_se_guarda(): void
     {
         $this->from(route('productos.create'))

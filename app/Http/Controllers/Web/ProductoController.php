@@ -19,6 +19,7 @@ class ProductoController extends Controller
         $estado = $request->input('estado');
 
         $productos = Producto::query()
+            ->with('borla:id,producto_id,tipo_borla')
             ->when($buscar, function ($query, $buscar) {
                 $query->where(function ($q) use ($buscar) {
                     $q->where('codigo', 'like', "%{$buscar}%")

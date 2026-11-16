@@ -17,6 +17,7 @@ class ExportacionController extends Controller
 
         $html = view('exportaciones.alquileres-excel', [
             'alquileres' => $alquileres,
+            'togasPorTalla' => $this->togasPorTalla($alquileres),
             'fechaGeneracion' => now(),
         ])->render();
 
@@ -63,13 +64,43 @@ class ExportacionController extends Controller
         return $pdf->download('movimientos_inventario.pdf');
     }
 
+    /**
+     * Togas alquiladas por talla en los alquileres del reporte (sin contar
+     * los cancelados): [talla => ['ESTANDAR' => n, 'UNIVERSITARIA' => n, 'total' => n]].
+     */
+    private function togasPorTalla($alquileres): array
+    {
+        $tallas = [];
+
+        foreach ($alquileres as $alquiler) {
+            if ($alquiler->estado === 'CANCELADO') {
+                continue;
+            }
+
+            foreach ($alquiler->togasPorTalla() as $talla => $porTipo) {
+                foreach ($porTipo as $tipo => $cantidad) {
+                    $tallas[$talla] ??= ['ESTANDAR' => 0, 'UNIVERSITARIA' => 0, 'total' => 0];
+                    $tallas[$talla][$tipo] += $cantidad;
+                    $tallas[$talla]['total'] += $cantidad;
+                }
+            }
+        }
+
+        // Tallas numéricas primero (4, 6, 8...), luego XS, S, M, L, XL...
+        $letras = ['XXS' => 1, 'XS' => 2, 'S' => 3, 'M' => 4, 'L' => 5, 'XL' => 6, 'XXL' => 7, 'XXXL' => 8];
+        uksort($tallas, fn ($a, $b) => (is_numeric($a) ? [0, (float) $a, ''] : [1, $letras[$a] ?? 99, (string) $a])
+            <=> (is_numeric($b) ? [0, (float) $b, ''] : [1, $letras[$b] ?? 99, (string) $b]));
+
+        return $tallas;
+    }
+
     private function queryAlquileres(Request $request)
     {
         $buscar = $request->input('buscar');
         $estado = $request->input('estado');
         $estadoPago = $request->input('estado_pago');
 
-        return Alquiler::with(['cliente', 'detalles.producto', 'pagos'])
+        return Alquiler::with(['cliente', 'detalles.producto.toga', 'pagos'])
             ->when($buscar, function ($query, $buscar) {
                 $query->where(function ($q) use ($buscar) {
                     $q->where('codigo_recibo', 'like', "%{$buscar}%")

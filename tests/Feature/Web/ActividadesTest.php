@@ -209,4 +209,22 @@ class ActividadesTest extends PruebaWeb
     {
         $this->get(route('dashboard'))->assertSee(route('actividades.agenda'), false)->assertDontSee('Control de alquileres');
     }
+
+    public function test_excel_de_alquileres_muestra_togas_por_persona_y_por_talla(): void
+    {
+        ['c' => $c] = $this->escenario();
+        // A: M×3 · B: M×5 + XL×2 · C: XL×4 (se cancela) · D: M×1
+        $this->post(route('alquileres.cancelar', $c), ['motivo_cancelacion' => 'Prueba']);
+
+        $respuesta = $this->get(route('exportaciones.alquileres.excel'))->assertOk();
+        $texto = preg_replace('/\s+/', ' ', strip_tags($respuesta->getContent()));
+
+        $respuesta->assertSee('Togas alquiladas')->assertSee('M×5, XL×2');
+
+        // Por talla, sin contar el cancelado: M = 3 + 5 + 1 = 9, XL = 2, total 11.
+        $this->assertStringContainsString('Talla M 9 0 9', $texto);
+        $this->assertStringContainsString('Talla XL 2 0 2', $texto);
+        $this->assertStringContainsString('Total 11 0 11', $texto);
+        $this->assertStringContainsString('TOTALES 11', $texto);
+    }
 }

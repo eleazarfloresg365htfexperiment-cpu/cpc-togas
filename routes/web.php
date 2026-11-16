@@ -11,6 +11,7 @@ use App\Http\Controllers\Web\ActividadController;
 use App\Http\Controllers\Web\AlquilerController;
 use App\Http\Controllers\Web\AlquilerDocumentoController;
 use App\Http\Controllers\Web\ClienteController;
+use App\Http\Controllers\Web\ClienteHistorialController;
 use App\Http\Controllers\Web\DanoController;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\FabricacionController;
@@ -93,6 +94,19 @@ Route::middleware(['auth', 'usuario.activo'])->group(function () {
         ->name('inventario.movimientos');
 
     // - - - - CLIENTES - - - -
+
+    // Historial de clientes (las rutas fijas van antes que las de {cliente}).
+    Route::get('/clientes/historial/pdf', [ClienteHistorialController::class, 'todosPdf'])
+        ->name('clientes.historial.pdf');
+    Route::get('/clientes/historial/excel', [ClienteHistorialController::class, 'todosExcel'])
+        ->name('clientes.historial.excel');
+    Route::get('/clientes/{cliente}', [ClienteHistorialController::class, 'show'])
+        ->whereNumber('cliente')
+        ->name('clientes.show');
+    Route::get('/clientes/{cliente}/historial/pdf', [ClienteHistorialController::class, 'pdf'])
+        ->name('clientes.show.pdf');
+    Route::get('/clientes/{cliente}/historial/excel', [ClienteHistorialController::class, 'excel'])
+        ->name('clientes.show.excel');
 
     Route::resource('clientes', ClienteController::class)
         ->only(['index', 'create', 'store', 'edit', 'update'])

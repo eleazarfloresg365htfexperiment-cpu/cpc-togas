@@ -87,7 +87,7 @@ class ProductoSeeder extends Seeder
         |--------------------------------------------------------------------------
         */
 
-        $birreteEstandar = Producto::create([
+        $birreteNormal = Producto::create([
             'codigo' => 'BIR-EST-NEGRO',
             'nombre' => 'Birrete estándar negro',
             'tipo_producto' => 'BIRRETE',
@@ -100,8 +100,8 @@ class ProductoSeeder extends Seeder
         ]);
 
         ProductoBirrete::create([
-            'producto_id' => $birreteEstandar->id,
-            'tipo_birrete' => 'ESTANDAR',
+            'producto_id' => $birreteNormal->id,
+            'tipo_birrete' => 'NORMAL',
             'color' => 'Negro',
             'carrera' => null,
             'tiene_borlas_extra' => false,

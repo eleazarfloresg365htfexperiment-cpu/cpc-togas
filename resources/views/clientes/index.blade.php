@@ -14,9 +14,19 @@
         </p>
     </div>
 
-    <a href="{{ route('clientes.create') }}" class="btn btn-primary rounded-pill">
-        ➕ Registrar cliente
-    </a>
+    <div class="d-flex flex-wrap gap-2">
+        <a href="{{ route('clientes.historial.excel', request()->query()) }}" class="btn btn-outline-success rounded-pill"
+           title="Historial de todos los clientes con alquileres (respeta la búsqueda)">
+            📊 Historial en Excel
+        </a>
+        <a href="{{ route('clientes.historial.pdf', request()->query()) }}" target="_blank" class="btn btn-outline-danger rounded-pill"
+           title="Historial de todos los clientes con alquileres (respeta la búsqueda)">
+            📄 Historial en PDF
+        </a>
+        <a href="{{ route('clientes.create') }}" class="btn btn-primary rounded-pill">
+            ➕ Registrar cliente
+        </a>
+    </div>
 </div>
 
 <div class="page-card mb-4">
@@ -186,6 +196,11 @@
 
                             <td>
                                 <div class="acciones-cliente">
+                                    <a href="{{ route('clientes.show', $cliente->id) }}"
+                                       class="btn btn-sm btn-primary rounded-pill action-main-btn">
+                                        📖 Historial
+                                    </a>
+
                                     <a href="{{ route('clientes.edit', $cliente->id) }}"
                                        class="btn btn-sm btn-outline-primary rounded-pill action-main-btn">
                                         ✏️ Editar

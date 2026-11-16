@@ -222,7 +222,7 @@ class AlquileresWebTest extends PruebaWeb
 
     public function test_extras_se_cobran(): void
     {
-        $birrete = $this->birrete('ESTANDAR', ['precio_alquiler' => 10]);
+        $birrete = $this->birrete('NORMAL', ['precio_alquiler' => 10]);
 
         $this->crear(['birrete_extra_id' => $birrete->id, 'birrete_extra_cantidad' => 3])
             ->assertSessionHasNoErrors();
